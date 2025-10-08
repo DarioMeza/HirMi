@@ -14,7 +14,7 @@ object UserRepository {
                 password = "123456",
                 birthdate = "2005/09/10",
                 song = Song("Blinding lights", "The Weekend", "After Hours", "Pop", 213),
-                distance = 100
+                distance = 10
             )
         )
     }
