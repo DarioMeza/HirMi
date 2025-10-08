@@ -8,6 +8,6 @@ data class User (
     var email: String,
     var password: String,
     val birthdate: String,
-    var song: Song,
+    var song: Song?,
     var distance: Int
 )
