@@ -9,7 +9,7 @@ object UserRepository {
                 id = "1",
                 firstName = "Dario",
                 lastName = "Meza",
-                username = "malditomotherfucker",
+                username = "dario",
                 email = "dario.meza.ariel@gmial.com",
                 password = "123456",
                 birthdate = "2005/09/10",

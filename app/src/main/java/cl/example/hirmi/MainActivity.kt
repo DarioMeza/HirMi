@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import cl.example.hirmi.ui.Login
 import cl.example.hirmi.ui.theme.HirMiTheme
 
 class MainActivity : ComponentActivity() {
@@ -19,13 +20,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             HirMiTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
-            }
+                Login()
         }
     }
 }
@@ -44,4 +39,4 @@ fun GreetingPreview() {
     HirMiTheme {
         Greeting("Android")
     }
-}
+}}
