@@ -36,7 +36,7 @@ fun RegisterScreen() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // 👤 Ícono de usuario
+            //Ícono de usuario---------------------------------------------------
             Icon(
                 imageVector = Icons.Default.Person,
                 contentDescription = "Icono de usuario",
@@ -46,7 +46,7 @@ fun RegisterScreen() {
                 tint = MaterialTheme.colorScheme.primary
             )
 
-            // 📝 Título
+            //Título-------------------------------------------------------
             Text(
                 text = "Registro de Usuario",
                 fontSize = 22.sp,
@@ -55,7 +55,7 @@ fun RegisterScreen() {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Campos de texto
+            //Campos de texto------------------------------------------------
             TextField(
                 value = firstName,
                 onValueChange = { firstName = it },
@@ -131,11 +131,14 @@ fun RegisterScreen() {
                         song = null,
                         distance = 0
                     )
-                    // TODO: enviar user al ViewModel
+                    // Aqui podemos guardar el usuario o enviarlo a un viewModel
                 },
                 modifier = Modifier.fillMaxWidth(0.6f)
             ) {
                 Text("Registrarse")
+
+
+
             }
         }
     }
