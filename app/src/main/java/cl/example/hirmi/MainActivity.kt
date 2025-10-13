@@ -12,15 +12,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import cl.example.hirmi.ui.Login
+import cl.example.hirmi.ui.WelcomeScreen
 import cl.example.hirmi.ui.theme.HirMiTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
-            //Quitar esto, es solo para probar
-            RegisterScreen()
+            HirMiTheme {
+                val navController = rememberNavController()
+                NavHost(navController = navController, startDestination = "welcome") {
+                    composable("welcome") { WelcomeScreen(navController) }
+                    composable("login") { LoginScreen(navController) }
+                    composable("register") { RegisterScreen(navController) }
+                }
+            }
         }
     }
 }
@@ -39,4 +46,4 @@ fun GreetingPreview() {
     HirMiTheme {
         Greeting("Android")
     }
-}
+}}
