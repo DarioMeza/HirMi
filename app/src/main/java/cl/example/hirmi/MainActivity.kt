@@ -1,18 +1,17 @@
 package cl.example.hirmi
 
-import RegisterScreen
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import cl.example.hirmi.ui.Login
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import cl.example.hirmi.ui.LoginScreen
+import cl.example.hirmi.ui.RegisterScreen
 import cl.example.hirmi.ui.WelcomeScreen
 import cl.example.hirmi.ui.theme.HirMiTheme
 
@@ -21,29 +20,17 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             HirMiTheme {
-                val navController = rememberNavController()
-                NavHost(navController = navController, startDestination = "welcome") {
-                    composable("welcome") { WelcomeScreen(navController) }
-                    composable("login") { LoginScreen(navController) }
-                    composable("register") { RegisterScreen(navController) }
-                }
+                Text(text = "HirMi")
             }
         }
     }
 }
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
+//Esto es solo para previsualizar la app en el IDE
 @Preview(showBackground = true)
 @Composable
 fun GreetingPreview() {
     HirMiTheme {
-        Greeting("Android")
+        Text(text = "HirMi")
     }
-}}
+}

@@ -9,13 +9,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cl.example.hirmi.repository.UserRepository
 import cl.example.hirmi.R as res
 
 
 @Composable
-fun Login() {
+fun LoginScreen() {
 
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -33,7 +34,7 @@ fun Login() {
     ) {
 
         Image(
-            painter = painterResource(id = res.drawable.logo),
+            painter = painterResource(id = res.drawable.icono),
             contentDescription = "Logo de la app",
             modifier = Modifier
                 .size(220.dp)
@@ -91,3 +92,13 @@ fun Login() {
         )
     }
 }
+
+//Esto es solo para previsualizar la app en el IDE
+@Preview(showBackground = true)
+@Composable
+private fun LoginScreenPreview() {
+    MaterialTheme {
+        LoginScreen()
+    }
+}
+
