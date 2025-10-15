@@ -11,12 +11,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import cl.example.hirmi.repository.UserRepository
 import cl.example.hirmi.R as res
 
 
 @Composable
-fun LoginScreen() {
+fun LoginScreen(navController: NavController) {
 
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -93,12 +94,5 @@ fun LoginScreen() {
     }
 }
 
-//Esto es solo para previsualizar la app en el IDE
-@Preview(showBackground = true)
-@Composable
-private fun LoginScreenPreview() {
-    MaterialTheme {
-        LoginScreen()
-    }
-}
+
 

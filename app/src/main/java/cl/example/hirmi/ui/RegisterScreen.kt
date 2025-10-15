@@ -15,12 +15,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import cl.example.hirmi.R
 import cl.example.hirmi.model.User
 import java.util.UUID
 
 @Composable
-fun RegisterScreen() {
+fun RegisterScreen(navController: NavController) {
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
@@ -147,14 +148,5 @@ fun RegisterScreen() {
 
             }
         }
-    }
-}
-
-//Esto es solo para previsualizar la app en el IDE
-@Preview(showBackground = true)
-@Composable
-private fun RegisterScreenPreview() {
-    MaterialTheme {
-        RegisterScreen()
     }
 }

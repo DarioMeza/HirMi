@@ -10,10 +10,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import cl.example.hirmi.R
 
 @Composable
-fun WelcomeScreen(modifier: Modifier = Modifier) {
+fun WelcomeScreen(navController: NavController, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier.fillMaxSize()
     ) {
@@ -65,7 +66,7 @@ fun WelcomeScreen(modifier: Modifier = Modifier) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Button(
-                    onClick = { /* Acción al hacer clic en Registrarse */ },
+                    onClick = { navController.navigate("register") },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
@@ -76,7 +77,7 @@ fun WelcomeScreen(modifier: Modifier = Modifier) {
                 Spacer(modifier = Modifier.height(12.dp))
 
                 OutlinedButton(
-                    onClick = { /* Acción al hacer clic en Iniciar sesión */ },
+                    onClick = {navController.navigate("login") },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
@@ -88,11 +89,4 @@ fun WelcomeScreen(modifier: Modifier = Modifier) {
     }
 }
 
-//Esto es solo para previsualizar la app en el IDE
-@Preview(showBackground = true)
-@Composable
-private fun WelcomeScreenPreview() {
-    MaterialTheme {
-        WelcomeScreen()
-    }
-}
+

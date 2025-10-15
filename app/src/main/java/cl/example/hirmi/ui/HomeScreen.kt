@@ -17,13 +17,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import cl.example.hirmi.model.User
 import cl.example.hirmi.repository.UserRepository
 
 // Pantalla principal de la app
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(modifier: Modifier = Modifier) {
+fun HomeScreen(navController: NavController,modifier: Modifier = Modifier ) {
     // Obtenemos los usuarios desde el repositorio simulado
     val users = remember { UserRepository.getUsers() }
 
@@ -147,11 +148,4 @@ fun UserCard(user: User) {
     }
 }
 
-// Previsualización
-@Preview(showBackground = true)
-@Composable
-private fun HomeScreenPreview() {
-    MaterialTheme {
-        HomeScreen()
-    }
-}
+
