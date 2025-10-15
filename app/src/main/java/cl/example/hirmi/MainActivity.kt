@@ -10,6 +10,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import cl.example.hirmi.ui.HomeScreen
 import cl.example.hirmi.ui.LoginScreen
 import cl.example.hirmi.ui.RegisterScreen
 import cl.example.hirmi.ui.WelcomeScreen
@@ -20,7 +21,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             HirMiTheme {
-                Text(text = "HirMi")
+                WelcomeScreen()
             }
         }
     }

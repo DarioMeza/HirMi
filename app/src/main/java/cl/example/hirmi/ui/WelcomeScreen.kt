@@ -27,6 +27,7 @@ fun WelcomeScreen(modifier: Modifier = Modifier) {
 
             // Parte superior: logo centrado
             Spacer(modifier = Modifier.height(20.dp))
+
             Image(
                 painter = painterResource(id = R.drawable.icono),
                 contentDescription = "Icono de bienvenida",
@@ -46,12 +47,13 @@ fun WelcomeScreen(modifier: Modifier = Modifier) {
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.onBackground
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(30.dp))
+
                 Text(
                     text = "Hola, estás en HirMi: escucha, comparte y encuentra gente que vibra con tu música.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.padding(horizontal = 8.dp),
+                    modifier = Modifier.padding(horizontal = 3.dp),
                 )
             }
 

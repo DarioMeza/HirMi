@@ -1,4 +1,5 @@
 package cl.example.hirmi.ui
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -7,11 +8,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import cl.example.hirmi.R
 import cl.example.hirmi.model.User
 import java.util.UUID
 
@@ -39,13 +43,13 @@ fun RegisterScreen() {
             verticalArrangement = Arrangement.Center
         ) {
             //Ícono de usuario---------------------------------------------------
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = "Icono de usuario",
+            Image(
+                painter = painterResource(id = R.drawable.icono),
+                contentDescription = "Icono de bienvenida",
                 modifier = Modifier
-                    .size(80.dp)
-                    .padding(bottom = 8.dp),
-                tint = MaterialTheme.colorScheme.primary
+                    .size(180.dp)
+                    .align(Alignment.CenterHorizontally),
+                contentScale = ContentScale.Fit
             )
 
             //Título-------------------------------------------------------
