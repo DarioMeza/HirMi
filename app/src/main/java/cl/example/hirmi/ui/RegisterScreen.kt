@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import cl.example.hirmi.R
 import cl.example.hirmi.model.User
+import cl.example.hirmi.repository.UserRepository
 import java.util.UUID
 
 @Composable
@@ -138,7 +139,7 @@ fun RegisterScreen(navController: NavController) {
                         song = null,
                         distance = 0
                     )
-                    // Aqui podemos guardar el usuario o enviarlo a un viewModel
+                    UserRepository.addUser(user)
                 },
                 modifier = Modifier.fillMaxWidth(0.6f)
             ) {
