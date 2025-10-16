@@ -42,7 +42,7 @@ fun LoginScreen(navController: NavController) {
                 .padding(bottom = 16.dp)
         )
 
-        Text(text = "Login", style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold))
+        Text(text = "Inicio de sesion", style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold))
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -70,6 +70,7 @@ fun LoginScreen(navController: NavController) {
 
             if (userFound != null) {
                 dialogText = "Bienvenido ${userFound.firstName} ${userFound.lastName}!"
+                navController.navigate("home")
             } else {
                 dialogText = "Usuario o contraseña incorrectos."
             }

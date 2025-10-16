@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
@@ -54,12 +55,9 @@ fun RegisterScreen(navController: NavController) {
                 contentScale = ContentScale.Fit
             )
 
+            Spacer(modifier = Modifier.height(16.dp))
             //Título-------------------------------------------------------
-            Text(
-                text = "Registro de Usuario",
-                fontSize = 22.sp,
-                style = MaterialTheme.typography.titleLarge
-            )
+            Text(text = "Registro de Usuario", style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold))
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -140,6 +138,7 @@ fun RegisterScreen(navController: NavController) {
                         distance = 0
                     )
                     UserRepository.addUser(user)
+                    navController.navigate("home")
                 },
                 modifier = Modifier.fillMaxWidth(0.6f)
             ) {

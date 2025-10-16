@@ -126,9 +126,14 @@ fun UserCard(user: User) {
             Spacer(modifier = Modifier.height(8.dp))
 
             // Información básica
-            Text("Canción: ${user.song?.title ?: "Sin canción"}", fontWeight = FontWeight.SemiBold)
-            Text("Artista: ${user.song?.artist ?: "Sin artista"}", fontWeight = FontWeight.SemiBold)
+            Text("Canción: ${user.song?.title ?: "Sin canción"}",
+                fontWeight = FontWeight.SemiBold)
+
+            Text("Artista: ${user.song?.artist ?: "Sin artista"}",
+                fontWeight = FontWeight.SemiBold)
+
             Text("Distancia: ${user.distance} metros")
+
 
             // Información adicional que se muestra al expandir
             if (expanded) {
