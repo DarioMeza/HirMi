@@ -12,6 +12,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import cl.example.hirmi.R
+import cl.example.hirmi.ui.theme.HirMiTheme
 
 @Composable
 fun WelcomeScreen(navController: NavController, modifier: Modifier = Modifier) {
