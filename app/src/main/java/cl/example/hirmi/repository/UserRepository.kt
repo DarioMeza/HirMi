@@ -32,6 +32,10 @@ object UserRepository {
         )
     )
 
+    fun getUsers(maxDistance: Int): List<User> {
+        // Filtra los usuarios según la distancia máxima proporcionada
+        return users.filter { it.distance <= maxDistance }
+    }
     fun getUsers(): List<User> {
         // Ahora devuelve la lista mutable
         return users
