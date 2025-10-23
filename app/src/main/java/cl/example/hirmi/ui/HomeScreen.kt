@@ -129,18 +129,6 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
                     selected = true,
                     onClick = { /* TODO: Navegación */ }
                 )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Filled.MusicNote, contentDescription = "Música") },
-                    label = { Text("Música") },
-                    selected = false,
-                    onClick = { /* TODO: Navegación */ }
-                )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Filled.People, contentDescription = "Comunidad") },
-                    label = { Text("Comunidad") },
-                    selected = false,
-                    onClick = { /* TODO: Navegación */ }
-                )
             }
         },
         // Botón flotante para iniciar el escaneo
