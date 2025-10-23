@@ -1,3 +1,4 @@
+// Kotlin
 package cl.example.hirmi.ui
 
 import androidx.compose.foundation.Image
@@ -15,7 +16,6 @@ import androidx.navigation.NavController
 import cl.example.hirmi.repository.UserRepository
 import cl.example.hirmi.R as res
 
-
 @Composable
 fun LoginScreen(navController: NavController) {
 
@@ -23,8 +23,9 @@ fun LoginScreen(navController: NavController) {
     var password by remember { mutableStateOf("") }
     var showDialog by remember { mutableStateOf(false) }
     var dialogText by remember { mutableStateOf("") }
+    var shouldNavigate by remember { mutableStateOf(false) } // bandera para navegar después del OK
 
-    val users = remember { UserRepository.getUsers() } // lista de usuarios del repo
+    val users = remember { UserRepository.getUsers() }
 
     Column(
         modifier = Modifier
@@ -70,9 +71,10 @@ fun LoginScreen(navController: NavController) {
 
             if (userFound != null) {
                 dialogText = "Bienvenido ${userFound.firstName} ${userFound.lastName}!"
-                navController.navigate("home")
+                shouldNavigate = true
             } else {
                 dialogText = "Usuario o contraseña incorrectos."
+                shouldNavigate = false
             }
 
             showDialog = true
@@ -83,17 +85,20 @@ fun LoginScreen(navController: NavController) {
 
     if (showDialog) {
         AlertDialog(
-            onDismissRequest = { showDialog = false },
+            onDismissRequest = { /* vacío para evitar cierre automático; el usuario debe pulsar OK */ },
             title = { Text("Resultado del Login") },
             text = { Text(dialogText) },
             confirmButton = {
-                TextButton(onClick = { showDialog = false }) {
+                TextButton(onClick = {
+                    showDialog = false
+                    if (shouldNavigate) {
+                        shouldNavigate = false
+                        navController.navigate("home")
+                    }
+                }) {
                     Text("OK")
                 }
             }
         )
     }
 }
-
-
-
