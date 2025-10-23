@@ -1,4 +1,3 @@
-// Kotlin
 package cl.example.hirmi.ui
 
 import androidx.compose.foundation.Image
@@ -23,7 +22,11 @@ fun LoginScreen(navController: NavController) {
     var password by remember { mutableStateOf("") }
     var showDialog by remember { mutableStateOf(false) }
     var dialogText by remember { mutableStateOf("") }
-    var shouldNavigate by remember { mutableStateOf(false) } // bandera para navegar después del OK
+    var shouldNavigate by remember { mutableStateOf(false) }
+
+    // Errores individuales
+    var usernameError by remember { mutableStateOf<String?>(null) }
+    var passwordError by remember { mutableStateOf<String?>(null) }
 
     val users = remember { UserRepository.getUsers() }
 
@@ -43,41 +46,84 @@ fun LoginScreen(navController: NavController) {
                 .padding(bottom = 16.dp)
         )
 
-        Text(text = "Inicio de sesion", style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold))
+        Text(
+            text = "Inicio de sesión",
+            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Username
         OutlinedTextField(
             value = username,
-            onValueChange = { username = it },
+            onValueChange = {
+                username = it
+                usernameError = null // limpia el error al escribir
+            },
             label = { Text("Username") },
-            singleLine = true
+            singleLine = true,
+            isError = usernameError != null,
+            modifier = Modifier.fillMaxWidth()
         )
+        if (usernameError != null) {
+            Text(usernameError!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        }
 
         Spacer(modifier = Modifier.height(8.dp))
 
+        // Password
         OutlinedTextField(
             value = password,
-            onValueChange = { password = it },
+            onValueChange = {
+                password = it
+                passwordError = null
+            },
             label = { Text("Password") },
             singleLine = true,
-            visualTransformation = PasswordVisualTransformation()
+            visualTransformation = PasswordVisualTransformation(),
+            isError = passwordError != null,
+            modifier = Modifier.fillMaxWidth()
         )
+        if (passwordError != null) {
+            Text(passwordError!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(onClick = {
-            val userFound = users.find { it.username == username && it.password == password }
+            var valid = true
 
-            if (userFound != null) {
-                dialogText = "Bienvenido ${userFound.firstName} ${userFound.lastName}!"
-                shouldNavigate = true
-            } else {
-                dialogText = "Usuario o contraseña incorrectos."
-                shouldNavigate = false
+            // Validaciones
+            if (username.isBlank()) {
+                usernameError = "El campo no puede estar vacío"
+                valid = false
+            } else if (!username.matches(Regex("^[a-zA-Z0-9._-]{3,}$"))) {
+                usernameError = "Usuario inválido (mínimo 3 caracteres)"
+                valid = false
             }
 
-            showDialog = true
+            if (password.isBlank()) {
+                passwordError = "El campo no puede estar vacío"
+                valid = false
+            } else if (password.length < 6) {
+                passwordError = "La contraseña debe tener al menos 6 caracteres"
+                valid = false
+            }
+
+            // Solo si pasa las validaciones continúa
+            if (valid) {
+                val userFound = users.find { it.username == username && it.password == password }
+
+                if (userFound != null) {
+                    dialogText = "Bienvenido ${userFound.firstName} ${userFound.lastName}!"
+                    shouldNavigate = true
+                } else {
+                    dialogText = "Usuario o contraseña incorrectos."
+                    shouldNavigate = false
+                }
+
+                showDialog = true
+            }
         }) {
             Text("Iniciar sesión")
         }
@@ -85,7 +131,7 @@ fun LoginScreen(navController: NavController) {
 
     if (showDialog) {
         AlertDialog(
-            onDismissRequest = { /* vacío para evitar cierre automático; el usuario debe pulsar OK */ },
+            onDismissRequest = { },
             title = { Text("Resultado del Login") },
             text = { Text(dialogText) },
             confirmButton = {
