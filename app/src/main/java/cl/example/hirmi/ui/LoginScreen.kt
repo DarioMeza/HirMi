@@ -1,6 +1,7 @@
 package cl.example.hirmi.ui
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -9,26 +10,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import cl.example.hirmi.repository.UserRepository
+import cl.example.hirmi.viewmodel.UserViewModel
 import cl.example.hirmi.R as res
 
 @Composable
-fun LoginScreen(navController: NavController) {
-
+fun LoginScreen(navController: NavController, viewModel: UserViewModel) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var showDialog by remember { mutableStateOf(false) }
-    var dialogText by remember { mutableStateOf("") }
-    var shouldNavigate by remember { mutableStateOf(false) }
 
-    // Errores individuales
-    var usernameError by remember { mutableStateOf<String?>(null) }
-    var passwordError by remember { mutableStateOf<String?>(null) }
+    val error by viewModel.error.collectAsState()
 
-    val users = remember { UserRepository.getUsers() }
+    // Limpiar error al entrar
+    LaunchedEffect(Unit) {
+        viewModel.clearError()
+    }
 
     Column(
         modifier = Modifier
@@ -37,7 +37,6 @@ fun LoginScreen(navController: NavController) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
         Image(
             painter = painterResource(id = res.drawable.icono),
             contentDescription = "Logo de la app",
@@ -53,98 +52,65 @@ fun LoginScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Username
         OutlinedTextField(
             value = username,
-            onValueChange = {
-                username = it
-                usernameError = null // limpia el error al escribir
-            },
-            label = { Text("Username") },
+            onValueChange = { username = it },
+            label = { Text("Usuario") },
             singleLine = true,
-            isError = usernameError != null,
             modifier = Modifier.fillMaxWidth()
         )
-        if (usernameError != null) {
-            Text(usernameError!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-        }
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Password
         OutlinedTextField(
             value = password,
-            onValueChange = {
-                password = it
-                passwordError = null
-            },
-            label = { Text("Password") },
+            onValueChange = { password = it },
+            label = { Text("Contraseña") },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
-            isError = passwordError != null,
             modifier = Modifier.fillMaxWidth()
         )
-        if (passwordError != null) {
-            Text(passwordError!!, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(onClick = {
-            var valid = true
-
-            // Validaciones
-            if (username.isBlank()) {
-                usernameError = "El campo no puede estar vacío"
-                valid = false
-            } else if (!username.matches(Regex("^[a-zA-Z0-9._-]{3,}$"))) {
-                usernameError = "Usuario inválido (mínimo 3 caracteres)"
-                valid = false
-            }
-
-            if (password.isBlank()) {
-                passwordError = "El campo no puede estar vacío"
-                valid = false
-            } else if (password.length < 6) {
-                passwordError = "La contraseña debe tener al menos 6 caracteres"
-                valid = false
-            }
-
-            // Solo si pasa las validaciones continúa
-            if (valid) {
-                val userFound = users.find { it.username == username && it.password == password }
-
-                if (userFound != null) {
-                    dialogText = "Bienvenido ${userFound.firstName} ${userFound.lastName}!"
-                    shouldNavigate = true
-                } else {
-                    dialogText = "Usuario o contraseña incorrectos."
-                    shouldNavigate = false
+        Button(
+            onClick = {
+                if (viewModel.login(username, password)) {
+                    navController.navigate("home")
                 }
-
-                showDialog = true
-            }
-        }) {
+            },
+            modifier = Modifier.fillMaxWidth(0.7f)
+        ) {
             Text("Iniciar sesión")
         }
-    }
 
-    if (showDialog) {
-        AlertDialog(
-            onDismissRequest = { },
-            title = { Text("Resultado del Login") },
-            text = { Text(dialogText) },
-            confirmButton = {
-                TextButton(onClick = {
-                    showDialog = false
-                    if (shouldNavigate) {
-                        shouldNavigate = false
-                        navController.navigate("home")
-                    }
-                }) {
-                    Text("OK")
+        if (!error.isNullOrEmpty()) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                error!!,
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = "¿Aún no tienes cuenta? ", fontSize = 15.sp)
+            Text(
+                text = "Regístrate aquí",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                textDecoration = TextDecoration.Underline,
+                modifier = Modifier.clickable {
+                    viewModel.clearError()
+                    navController.navigate("register")
                 }
-            }
-        )
+            )
+        }
     }
 }

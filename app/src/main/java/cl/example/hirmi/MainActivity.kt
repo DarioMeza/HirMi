@@ -3,50 +3,29 @@ package cl.example.hirmi
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.navigation.NavController
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import cl.example.hirmi.ui.HomeScreen
-import cl.example.hirmi.ui.LoginScreen
-import cl.example.hirmi.ui.RegisterScreen
-import cl.example.hirmi.ui.WelcomeScreen
+import cl.example.hirmi.ui.*
+import cl.example.hirmi.viewmodel.UserViewModel
 import cl.example.hirmi.ui.theme.HirMiTheme
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             HirMiTheme {
-                AppNavigation()
+                val nav = rememberNavController()
+                val userViewModel: UserViewModel = viewModel()
 
+                NavHost(navController = nav, startDestination = "welcome") {
+                    composable("welcome") { WelcomeScreen(nav) }
+                    composable("login") { LoginScreen(nav, userViewModel) }
+                    composable("register") { RegisterScreen(nav, userViewModel) }
+                    composable("home") { HomeScreen(nav, userViewModel) }
+                }
             }
         }
-    }
-}
-
-@Composable
-fun AppNavigation() {
-    val navController = rememberNavController()
-
-    NavHost(navController = navController, startDestination = "welcome") {
-        composable("welcome") { WelcomeScreen(navController) }
-        composable("login") { LoginScreen(navController) }
-        composable("register") { RegisterScreen(navController) }
-        composable("home") { HomeScreen(navController) } // tu pantalla de tarjetas
-    }
-}
-//Esto es solo para previsualizar la app en el IDE
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    HirMiTheme {
-        Text(text = "HirMi")
     }
 }

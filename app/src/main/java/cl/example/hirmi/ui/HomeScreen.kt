@@ -7,7 +7,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -17,83 +16,91 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import cl.example.hirmi.model.User
-import cl.example.hirmi.repository.UserRepository
+import cl.example.hirmi.viewmodel.UserViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
-    // ========== ESTADOS ==========
-    // Lista de usuarios que se mostrará en pantalla (inicia vacía)
-    var users by remember { mutableStateOf<List<User>>(emptyList()) }
+fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
+    val users by viewModel.users.collectAsState()
+    val scanned by viewModel.scanned.collectAsState()
+    val lastDistance by viewModel.lastDistance.collectAsState()
+    val currentUser by viewModel.currentUser.collectAsState()
 
-    // Estados para el modal de distancia
-    var showDistanceModal by remember { mutableStateOf(false) }  // Controla visibilidad del modal
-    var scanDistance by remember { mutableStateOf("100") }       // Almacena la distancia ingresada
-    var isDistanceError by remember { mutableStateOf(false) }    // Controla errores de validación
+    var showDistanceModal by remember { mutableStateOf(false) }
+    var showProfileModal by remember { mutableStateOf(false) }
+    var scanDistance by remember { mutableStateOf("100") }
+    var isDistanceError by remember { mutableStateOf(false) }
 
-    // ========== MODAL DE DISTANCIA ==========
+    // ============================= MODAL DE PERFIL =============================
+    if (showProfileModal && currentUser != null) {
+        AlertDialog(
+            onDismissRequest = { showProfileModal = false },
+            confirmButton = {
+                TextButton(onClick = { showProfileModal = false }) {
+                    Text("Cerrar")
+                }
+            },
+            title = { Text("Mi perfil", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("Nombre: ${currentUser!!.firstName} ${currentUser!!.lastName}")
+                    Text("Usuario: @${currentUser!!.username}")
+                    Text("Correo: ${currentUser!!.email}")
+                    Text("Fecha de nacimiento: ${currentUser!!.birthdate}")
+                    if (currentUser!!.song != null) {
+                        Text("Canción: ${currentUser!!.song!!.title}")
+                        Text("Artista: ${currentUser!!.song!!.artist}")
+                    }
+                }
+            }
+        )
+    }
+
+    // ============================= MODAL DE DISTANCIA =============================
     if (showDistanceModal) {
         AlertDialog(
             onDismissRequest = { showDistanceModal = false },
             title = { Text("Configurar distancia de escaneo") },
             text = {
                 Column {
-                    // Campo para ingresar la distancia
                     OutlinedTextField(
                         value = scanDistance,
-                        onValueChange = { newValue ->
-                            scanDistance = newValue
-                            // Valida que sea un número positivo
-                            isDistanceError = newValue.toIntOrNull()?.let { value ->
-                                value <= 0 || value > 100
-                            } ?: true
+                        onValueChange = {
+                            scanDistance = it
+                            isDistanceError = it.toIntOrNull()?.let { v -> v !in 1..100 } ?: true
                         },
                         label = { Text("Distancia máxima (metros)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        isError = isDistanceError,
-                        supportingText = {
-                            if (isDistanceError) {
-                                Text("Por favor ingresa un número válido entre 1 y 100")
-                        } else {
-                                Text("Máximo 100 metros")
-                            }
-                        }
+                        isError = isDistanceError
                     )
-
-                    Spacer(Modifier.height(8.dp))
-
-                    // Texto informativo
-                    Text(
-                        "Distancia de busqueda: ${scanDistance} metros de distancia",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (isDistanceError) MaterialTheme.colorScheme.error
-                        else MaterialTheme.colorScheme.onSurface
-                    )
+                    if (isDistanceError) {
+                        Text(
+                            "Por favor ingresa un número entre 1 y 100",
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    } else {
+                        Text("Máximo 100 metros", color = Color.Gray)
+                    }
                 }
             },
-            // Botón para confirmar la distancia y buscar usuarios
             confirmButton = {
                 Button(
                     onClick = {
-                        scanDistance.toIntOrNull()?.let { distance ->
-                            if (distance > 0) {
+                        scanDistance.toIntOrNull()?.let {
+                            if (!isDistanceError) {
+                                viewModel.filterByDistance(it)
                                 showDistanceModal = false
-                                // Actualiza la lista de usuarios según la distancia ingresada
-                                users = UserRepository.getUsers(distance)
                             }
                         }
-                    },
-                    enabled = !isDistanceError && scanDistance.isNotEmpty()
-                ) {
-                    Text("Escanear")
-                }
+                    }
+                ) { Text("Escanear") }
             },
-            // Botón para cancelar
             dismissButton = {
                 TextButton(onClick = { showDistanceModal = false }) {
                     Text("Cancelar")
@@ -102,56 +109,49 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
         )
     }
 
-    // ========== ESTRUCTURA PRINCIPAL ==========
+    // ============================= ESTRUCTURA PRINCIPAL =============================
     Scaffold(
-        // Barra superior con título y acciones
         topBar = {
             TopAppBar(
                 title = { Text("HirMi") },
                 actions = {
-                    // Botones de la barra superior
-                    IconButton(onClick = { /* TODO: Implementar filtros */ }) {
-                        Icon(Icons.Filled.Tune, contentDescription = "Filtros")
-                    }
-                    IconButton(onClick = { /* TODO: Implementar perfil */ }) {
+                    IconButton(
+                        onClick = {
+                            if (currentUser != null) {
+                                showProfileModal = true
+                            } else {
+                                navController.navigate("login")
+                            }
+                        }
+                    ) {
                         Icon(Icons.Filled.Person, contentDescription = "Perfil")
                     }
                 }
             )
         },
-        // Barra de navegación inferior
         bottomBar = {
             NavigationBar {
-                // Botones de navegación
                 NavigationBarItem(
                     icon = { Icon(Icons.Filled.Home, contentDescription = "Inicio") },
                     label = { Text("Inicio") },
                     selected = true,
-                    onClick = { /* TODO: Navegación */ }
+                    onClick = { /* ya estás en Home */ }
                 )
             }
         },
-        // Botón flotante para iniciar el escaneo
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showDistanceModal = true }
-            ) {
-                Icon(
-                    if (users.isEmpty()) Icons.Filled.PlayArrow else Icons.Filled.Refresh,
-                    contentDescription = "Configurar escaneo"
-                )
+            FloatingActionButton(onClick = { showDistanceModal = true }) {
+                Icon(Icons.Filled.Radar, contentDescription = "Escanear")
             }
         },
         floatingActionButtonPosition = FabPosition.Center
-    ) { paddingValues ->
-        // ========== CONTENIDO PRINCIPAL ==========
+    ) { padding ->
         Box(
-            modifier = modifier
+            modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(padding)
         ) {
-            if (users.isEmpty()) {
-                // Estado inicial - Mensaje cuando no hay usuarios
+            if (!scanned) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -165,15 +165,22 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
                     )
                 }
             } else {
-                // Lista de usuarios encontrados
-                LazyColumn(
+                Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                        .padding(16.dp)
                 ) {
-                    items(users) { user ->
-                        UserCard(user = user)
+                    Text(
+                        "Mostrando usuarios a menos de $lastDistance metros",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        items(users) { user ->
+                            UserCard(user)
+                        }
                     }
                 }
             }
@@ -181,10 +188,10 @@ fun HomeScreen(navController: NavController, modifier: Modifier = Modifier) {
     }
 }
 
-// ========== TARJETA DE USUARIO ==========
+// ================================= TARJETA DE USUARIO ===========================================
+
 @Composable
 fun UserCard(user: User) {
-    // Control de expansión de la tarjeta
     var expanded by remember { mutableStateOf(false) }
 
     Card(
@@ -194,9 +201,7 @@ fun UserCard(user: User) {
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Cabecera de la tarjeta: Avatar + Información básica
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // Avatar con iniciales
                 Box(
                     modifier = Modifier
                         .size(60.dp)
@@ -212,7 +217,6 @@ fun UserCard(user: User) {
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                // Información de usuario
                 Column {
                     Text("${user.firstName} ${user.lastName}", fontWeight = FontWeight.Bold)
                     Text("@${user.username}", color = Color.Gray)
@@ -221,28 +225,20 @@ fun UserCard(user: User) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Información musical y distancia
             Text("Canción: ${user.song?.title ?: "Sin canción"}", fontWeight = FontWeight.SemiBold)
             Text("Artista: ${user.song?.artist ?: "Sin artista"}", fontWeight = FontWeight.SemiBold)
             Text("Distancia: ${user.distance} metros")
 
-            // Contenido expandible
             if (expanded) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Divider()
-                // Detalles adicionales
                 Text("Álbum: ${user.song?.album ?: "N/A"}")
                 Text("Género: ${user.song?.genre ?: "N/A"}")
 
                 Spacer(modifier = Modifier.height(8.dp))
-                // Botones de acción
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { /* TODO: Implementar seguir */ }) {
-                        Text("Seguir")
-                    }
-                    Button(onClick = { /* TODO: Implementar mensaje */ }) {
-                        Text("Mensaje")
-                    }
+                    Button(onClick = { /* seguir */ }) { Text("Seguir") }
+                    Button(onClick = { /* mensaje */ }) { Text("Mensaje") }
                 }
             }
         }
