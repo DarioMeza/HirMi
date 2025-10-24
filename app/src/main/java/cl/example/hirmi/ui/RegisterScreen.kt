@@ -23,6 +23,7 @@ import androidx.navigation.NavController
 import cl.example.hirmi.R
 import cl.example.hirmi.model.User
 import cl.example.hirmi.viewmodel.UserViewModel
+import kotlinx.coroutines.launch
 import java.util.*
 
 @Composable
@@ -81,21 +82,26 @@ fun RegisterScreen(navController: NavController, viewModel: UserViewModel) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        val scope = rememberCoroutineScope() // 👈 crea un alcance de corrutinas
+
         Button(
             onClick = {
-                val user = User(
-                    id = UUID.randomUUID().toString(),
-                    firstName = firstName,
-                    lastName = lastName,
-                    username = username,
-                    email = email,
-                    password = password,
-                    birthdate = birthdate,
-                    song = null,
-                    distance = 0
-                )
-                if (viewModel.register(user)) {
-                    navController.navigate("login")
+                scope.launch {
+                    val user = User(
+                        id = UUID.randomUUID().toString(),
+                        firstName = firstName,
+                        lastName = lastName,
+                        username = username,
+                        email = email,
+                        password = password,
+                        birthdate = birthdate,
+                        song = null,
+                        distance = 0
+                    )
+                    val success = viewModel.register(user) // ✅ ahora se ejecuta en corrutina
+                    if (success) {
+                        navController.navigate("login")
+                    }
                 }
             },
             modifier = Modifier.fillMaxWidth(0.6f)

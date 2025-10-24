@@ -1,14 +1,15 @@
 package cl.example.hirmi.viewmodel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import cl.example.hirmi.model.User
 import cl.example.hirmi.repository.UserRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 
-class UserViewModel : ViewModel() {
+class UserViewModel(private val repo: UserRepository) : ViewModel() {
 
-    private val _users = MutableStateFlow(UserRepository.getUsers())
+    private val _users = MutableStateFlow<List<User>>(emptyList())
     val users = _users.asStateFlow()
 
     private val _error = MutableStateFlow<String?>(null)
@@ -23,23 +24,23 @@ class UserViewModel : ViewModel() {
     private val _lastDistance = MutableStateFlow(0)
     val lastDistance = _lastDistance.asStateFlow()
 
-    // === Limpiar error ===
+    init {
+        // Suscribirse a todos los usuarios (se actualiza en tiempo real)
+        viewModelScope.launch {
+            repo.getUsersStream().collect { _users.value = it }
+        }
+    }
+
     fun clearError() {
         _error.value = null
     }
 
-    // === Registro de usuario ===
-    fun register(user: User): Boolean {
-
+    // === Registro de usuario (usa suspend) ===
+    suspend fun register(user: User): Boolean {
         if (user.firstName.isBlank() || user.lastName.isBlank() ||
             user.username.isBlank() || user.email.isBlank() ||
             user.password.isBlank() || user.birthdate.isBlank()) {
             _error.value = "Todos los campos son obligatorios."
-            return false
-        }
-
-        if (user.firstName.length < 2 || user.lastName.length < 2) {
-            _error.value = "El nombre y apellido deben tener al menos 2 caracteres."
             return false
         }
 
@@ -49,93 +50,56 @@ class UserViewModel : ViewModel() {
             return false
         }
 
-        if (user.username.length < 4) {
-            _error.value = "El nombre de usuario debe tener al menos 4 caracteres."
+        if (repo.existsUsername(user.username)) {
+            _error.value = "El nombre de usuario ya está registrado."
             return false
         }
 
-        val passwordRegex = Regex("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{6,}$")
-        if (!passwordRegex.matches(user.password)) {
-            _error.value =
-                "La contraseña debe tener al menos 6 caracteres, con una mayúscula, una minúscula y un número."
+        if (repo.existsEmail(user.email)) {
+            _error.value = "El correo ya está registrado."
             return false
         }
 
-        val dateRegex = Regex("^(\\d{2}/\\d{2}/\\d{4}|\\d{4}/\\d{2}/\\d{2})$")
-        if (!dateRegex.matches(user.birthdate)) {
-            _error.value =
-                "La fecha de nacimiento debe tener un formato válido (dd/mm/aaaa o aaaa/mm/dd)."
-            return false
-        }
-
-        val existingUser = UserRepository.getUsers().any {
-            it.username.equals(user.username, ignoreCase = true) ||
-                    it.email.equals(user.email, ignoreCase = true)
-        }
-        if (existingUser) {
-            _error.value = "El nombre de usuario o correo ya están registrados."
-            return false
-        }
-
-        UserRepository.addUser(user)
-        refreshUsers()
+        repo.addUser(user)
         _error.value = null
         return true
     }
 
-    // === Login ===
-    fun login(username: String, password: String): Boolean {
-
+    // === Login (usa suspend) ===
+    suspend fun login(username: String, password: String): Boolean {
         if (username.isBlank() || password.isBlank()) {
             _error.value = "Debes ingresar tu usuario y contraseña."
             return false
         }
 
-        if (username.length < 4) {
-            _error.value = "El nombre de usuario debe tener al menos 4 caracteres."
-            return false
+        val found = repo.findByCredentials(username, password)
+        return if (found != null) {
+            _currentUser.value = found
+            _error.value = null
+            true
+        } else {
+            _error.value = "Usuario o contraseña incorrectos."
+            false
         }
-
-        if (password.length < 6) {
-            _error.value = "La contraseña debe tener al menos 6 caracteres."
-            return false
-        }
-
-        val found = UserRepository.getUsers().find {
-            it.username.equals(username, ignoreCase = true)
-        }
-
-        if (found == null) {
-            _error.value = "El usuario no existe o es incorrecto."
-            return false
-        }
-
-        if (found.password != password) {
-            _error.value = "La contraseña es incorrecta."
-            return false
-        }
-
-        _currentUser.value = found
-        _error.value = null
-        return true
     }
 
-    // === Filtrado por distancia ===
+    // === Filtrado por distancia (con corutina) ===
     fun filterByDistance(maxDistance: Int) {
-        val current = _currentUser.value
-        _users.value = UserRepository.getUsers()
-            .filter { it.distance <= maxDistance && it.id != current?.id } // 👈 excluye al usuario logueado
+        viewModelScope.launch {
+            repo.getUsersByDistanceStream(maxDistance).collect { list ->
+                val me = _currentUser.value
+                _users.value = if (me == null) list else list.filter { it.id != me.id }
+            }
+        }
         _scanned.value = true
         _lastDistance.value = maxDistance
-    }
-
-    private fun refreshUsers() {
-        _users.value = UserRepository.getUsers()
     }
 
     fun resetScan() {
         _scanned.value = false
         _lastDistance.value = 0
-        refreshUsers()
+        viewModelScope.launch {
+            repo.getUsersStream().collect { _users.value = it }
+        }
     }
 }

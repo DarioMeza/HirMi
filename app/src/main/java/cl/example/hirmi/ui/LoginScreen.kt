@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import cl.example.hirmi.viewmodel.UserViewModel
+import kotlinx.coroutines.launch
 import cl.example.hirmi.R as res
 
 @Composable
@@ -24,6 +25,7 @@ fun LoginScreen(navController: NavController, viewModel: UserViewModel) {
     var password by remember { mutableStateOf("") }
 
     val error by viewModel.error.collectAsState()
+    val scope = rememberCoroutineScope() // 👈 corrutina para el botón
 
     // Limpiar error al entrar
     LaunchedEffect(Unit) {
@@ -75,8 +77,11 @@ fun LoginScreen(navController: NavController, viewModel: UserViewModel) {
 
         Button(
             onClick = {
-                if (viewModel.login(username, password)) {
-                    navController.navigate("home")
+                scope.launch { // ✅ corrutina aquí
+                    val success = viewModel.login(username, password)
+                    if (success) {
+                        navController.navigate("home")
+                    }
                 }
             },
             modifier = Modifier.fillMaxWidth(0.7f)

@@ -1,13 +1,18 @@
 package cl.example.hirmi.model
 
-data class User (
-    val id: String,
+import androidx.room.Embedded
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "users")
+data class User(
+    @PrimaryKey val id: String,
     val firstName: String,
     val lastName: String,
-    var username: String,
-    var email: String,
-    var password: String,
+    val username: String,
+    val email: String,
+    val password: String,
     val birthdate: String,
-    var song: Song?,
-    var distance: Int
+    @Embedded(prefix = "song_") val song: Song?,
+    val distance: Int
 )

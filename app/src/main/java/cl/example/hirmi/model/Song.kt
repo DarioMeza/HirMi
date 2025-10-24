@@ -1,7 +1,5 @@
 package cl.example.hirmi.model
 
-import java.net.URL
-
 data class Song(
     val title: String,
     val artist: String,
