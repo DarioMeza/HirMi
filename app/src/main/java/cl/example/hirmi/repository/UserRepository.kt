@@ -14,6 +14,17 @@ class UserRepository(private val dao: UserDao) {
         dao.insert(user)
     }
 
+    // === Eliminar un usuario específico ===
+    suspend fun deleteUser(user: User) {
+        dao.delete(user)
+    }
+
+    // === Eliminar todos los usuarios ===
+    suspend fun deleteAllUsers() {
+        dao.deleteAll()
+    }
+
+
     suspend fun existsUsername(username: String): Boolean =
         dao.findByUsername(username) != null
 

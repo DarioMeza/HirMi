@@ -40,7 +40,10 @@ class MainActivity : ComponentActivity() {
                     factory = UserViewModelFactory(repo)
                 )
 
-                // === 4️⃣ Navegación ===
+                // === 🧠 4️⃣ Generar usuarios simulados (solo si la DB está vacía) ===
+                viewModel.generateInitialUsersIfEmpty()
+
+                // === 5️⃣ Configurar navegación ===
                 NavHost(navController = navController, startDestination = "login") {
                     composable("login") { LoginScreen(navController, viewModel) }
                     composable("register") { RegisterScreen(navController, viewModel) }

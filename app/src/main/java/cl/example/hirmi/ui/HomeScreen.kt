@@ -37,13 +37,39 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
 
     // ============================= MODAL DE PERFIL =============================
     if (showProfileModal && currentUser != null) {
+        var showConfirmDelete by remember { mutableStateOf(false) }
+
+        // === Confirmación de eliminación ===
+        if (showConfirmDelete) {
+            AlertDialog(
+                onDismissRequest = { showConfirmDelete = false },
+                title = { Text("Confirmar eliminación") },
+                text = { Text("¿Estás seguro de que deseas eliminar tu cuenta? Esta acción no se puede deshacer.") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        currentUser?.let {
+                            viewModel.deleteUser(it)
+                        }
+                        showConfirmDelete = false
+                        showProfileModal = false
+                        navController.navigate("register") {
+                            popUpTo("home") { inclusive = true }
+                        }
+                    }) {
+                        Text("Eliminar", color = Color.Red)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showConfirmDelete = false }) {
+                        Text("Cancelar")
+                    }
+                }
+            )
+        }
+
+        // === Modal principal del perfil ===
         AlertDialog(
             onDismissRequest = { showProfileModal = false },
-            confirmButton = {
-                TextButton(onClick = { showProfileModal = false }) {
-                    Text("Cerrar")
-                }
-            },
             title = { Text("Mi perfil", fontWeight = FontWeight.Bold) },
             text = {
                 Column(
@@ -55,6 +81,36 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                     Text("Correo: ${currentUser!!.email}")
                     Text("Fecha de nacimiento: ${currentUser!!.birthdate}")
 
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Botón de cerrar sesión
+                    Button(
+                        onClick = {
+                            viewModel.logout()
+                            showProfileModal = false
+                            navController.navigate("login") {
+                                popUpTo("home") { inclusive = true }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Text("Cerrar sesión", color = Color.White)
+                    }
+
+                    // Botón de eliminar cuenta
+                    Button(
+                        onClick = { showConfirmDelete = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                    ) {
+                        Text("Eliminar cuenta", color = Color.White)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showProfileModal = false }) {
+                    Text("Cerrar")
                 }
             }
         )
