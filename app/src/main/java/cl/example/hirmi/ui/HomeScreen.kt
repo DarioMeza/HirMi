@@ -51,13 +51,10 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text("Nombre: ${currentUser!!.firstName} ${currentUser!!.lastName}")
-                    Text("Usuario: @${currentUser!!.username}")
+                    Text("Nombre de Usuario: @${currentUser!!.username}")
                     Text("Correo: ${currentUser!!.email}")
                     Text("Fecha de nacimiento: ${currentUser!!.birthdate}")
-                    if (currentUser!!.song != null) {
-                        Text("Canción: ${currentUser!!.song!!.title}")
-                        Text("Artista: ${currentUser!!.song!!.artist}")
-                    }
+
                 }
             }
         )

@@ -95,7 +95,7 @@ fun RegisterScreen(navController: NavController, viewModel: UserViewModel) {
                     distance = 0
                 )
                 if (viewModel.register(user)) {
-                    navController.navigate("home")
+                    navController.navigate("login")
                 }
             },
             modifier = Modifier.fillMaxWidth(0.6f)
