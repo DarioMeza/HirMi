@@ -122,7 +122,9 @@ class UserViewModel : ViewModel() {
 
     // === Filtrado por distancia ===
     fun filterByDistance(maxDistance: Int) {
-        _users.value = UserRepository.getUsers().filter { it.distance <= maxDistance }
+        val current = _currentUser.value
+        _users.value = UserRepository.getUsers()
+            .filter { it.distance <= maxDistance && it.id != current?.id } // 👈 excluye al usuario logueado
         _scanned.value = true
         _lastDistance.value = maxDistance
     }
