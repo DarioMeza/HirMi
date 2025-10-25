@@ -21,29 +21,29 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // === 1️⃣ Crear la base de datos ===
+        // === 1.- Crear la base de datos ===
         val db = Room.databaseBuilder(
             applicationContext,
             AppDatabase::class.java,
             "hirmi_db"
         ).build()
 
-        // === 2️⃣ Crear el repositorio con el DAO ===
+        // === 2️.-  Crear el repositorio con el DAO ===
         val repo = UserRepository(db.userDao())
 
         setContent {
             HirMiTheme {
                 val navController = rememberNavController()
 
-                // === 3️⃣ Instanciar el ViewModel con Factory ===
+                // === 3️.- Instanciar el ViewModel con Factory ===
                 val viewModel: UserViewModel = viewModel(
                     factory = UserViewModelFactory(repo)
                 )
 
-                // === 🧠 4️⃣ Generar usuarios simulados (solo si la DB está vacía) ===
+                // === 🧠 4️.- Generar usuarios simulados (solo si la DB está vacía) ===
                 viewModel.generateInitialUsersIfEmpty()
 
-                // === 5️⃣ Configurar navegación ===
+                // === 5️.- Configurar navegación ===
                 NavHost(navController = navController, startDestination = "login") {
                     composable("login") { LoginScreen(navController, viewModel) }
                     composable("register") { RegisterScreen(navController, viewModel) }
