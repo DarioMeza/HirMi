@@ -1,5 +1,7 @@
 package cl.example.hirmi.repository
 
+import cl.example.hirmi.api.ApiUser
+import cl.example.hirmi.api.RetrofitClient
 import cl.example.hirmi.model.User
 import kotlinx.coroutines.flow.Flow
 
@@ -33,4 +35,21 @@ class UserRepository(private val dao: UserDao) {
 
     suspend fun findByCredentials(username: String, password: String): User? =
         dao.login(username, password)
+
+    // === REMOTO: obtener usuarios desde la API externa ===
+    suspend fun scanRemoteUsers(maxDistance: Int): Result<List<ApiUser>> {
+        return try {
+            val allUsers = RetrofitClient.apiService.getUsers()
+
+            // Filtramos por distancia en el cliente
+            val filtered = allUsers.filter { it.distance <= maxDistance }
+
+            Result.success(filtered)
+        } catch (e: Exception) {
+            // Log simple para depuración
+            println("Error al obtener usuarios remotos: ${e.message}")
+            Result.failure(e)
+        }
+    }
 }
+
