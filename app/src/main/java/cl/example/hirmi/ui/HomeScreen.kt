@@ -8,8 +8,27 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Radar
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FabPosition
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,16 +38,22 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import cl.example.hirmi.api.ApiUser
 import cl.example.hirmi.model.User
 import cl.example.hirmi.viewmodel.UserViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
-    val users by viewModel.users.collectAsState()
+    // Local (Room) – se sigue usando para perfil, etc.
     val scanned by viewModel.scanned.collectAsState()
     val lastDistance by viewModel.lastDistance.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
+
+    // Remoto (API externa)
+    val remoteUsers by viewModel.remoteUsers.collectAsState()
+    val remoteLoading by viewModel.remoteLoading.collectAsState()
+    val remoteError by viewModel.remoteError.collectAsState()
 
     var showDistanceModal by remember { mutableStateOf(false) }
     var showProfileModal by remember { mutableStateOf(false) }
@@ -145,9 +170,12 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
             confirmButton = {
                 Button(
                     onClick = {
-                        scanDistance.toIntOrNull()?.let {
+                        scanDistance.toIntOrNull()?.let { distance ->
                             if (!isDistanceError) {
-                                viewModel.filterByDistance(it)
+                                // Usamos el filtrado local solo para marcar "scanned" y guardar lastDistance,
+                                // pero la lista que se muestra será la remota.
+                                viewModel.filterByDistance(distance)
+                                viewModel.scanRemoteUsers(distance)
                                 showDistanceModal = false
                             }
                         }
@@ -204,35 +232,96 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            if (!scanned) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        "Pulsa el botón para comenzar a buscar personas cercanas",
-                        color = Color.Gray,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp)
-                ) {
-                    Text(
-                        "Mostrando usuarios a menos de $lastDistance metros",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
 
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        items(users) { user ->
-                            UserCard(user)
+            when {
+                remoteLoading -> {
+                    // Loading mientras llamamos a la API
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        androidx.compose.material3.CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Buscando personas cercanas...")
+                    }
+                }
+
+                remoteError != null -> {
+                    // Mensaje de error si la API falla
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = remoteError ?: "Ocurrió un error al buscar usuarios.",
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(onClick = {
+                            viewModel.clearRemoteError()
+                            showDistanceModal = true
+                        }) {
+                            Text("Intentar de nuevo")
+                        }
+                    }
+                }
+
+                !scanned -> {
+                    // Mensaje inicial antes de escanear
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "Pulsa el botón para comenzar a buscar personas cercanas",
+                            color = Color.Gray,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+
+                remoteUsers.isEmpty() -> {
+                    // No hubo resultados remotos
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "No se encontraron usuarios a menos de $lastDistance metros.",
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+
+                else -> {
+                    // Lista de usuarios remotos obtenidos desde la API
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            "Mostrando usuarios remotos a menos de $lastDistance metros",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+
+                        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            items(remoteUsers) { user ->
+                                RemoteUserCard(user)
+                            }
                         }
                     }
                 }
@@ -241,7 +330,7 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
     }
 }
 
-// ================================= TARJETA DE USUARIO ===========================================
+// ================================= TARJETA DE USUARIO LOCAL ===========================================
 
 @Composable
 fun UserCard(user: User) {
@@ -282,7 +371,9 @@ fun UserCard(user: User) {
             Text("Artista: ${user.song?.artist ?: "Sin artista"}", fontWeight = FontWeight.SemiBold)
             Text("Distancia: ${user.distance} metros")
 
-            if (expanded) {
+            var expandedInternal by remember { mutableStateOf(false) }
+
+            if (expandedInternal) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Divider()
                 Text("Álbum: ${user.song?.album ?: "N/A"}")
@@ -292,6 +383,68 @@ fun UserCard(user: User) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = { /* seguir */ }) { Text("Seguir") }
                     Button(onClick = { /* mensaje */ }) { Text("Mensaje") }
+                }
+            }
+        }
+    }
+}
+
+// ================================= TARJETA DE USUARIO REMOTO (API) ====================================
+
+@Composable
+fun RemoteUserCard(user: ApiUser) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { expanded = !expanded },
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(60.dp)
+                        .clip(CircleShape)
+                        .background(Color.LightGray),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "${user.firstName.first()}${user.lastName.first()}",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column {
+                    Text("${user.firstName} ${user.lastName}", fontWeight = FontWeight.Bold)
+                    Text(user.bio ?: "Sin biografía", color = Color.Gray)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text("Distancia: ${user.distance} metros")
+
+            user.song?.let { song ->
+                Text("Canción: ${song.title}", fontWeight = FontWeight.SemiBold)
+                Text("Artista: ${song.artist}", fontWeight = FontWeight.SemiBold)
+            }
+
+            if (expanded) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Divider()
+                user.song?.let { song ->
+                    Text("Álbum: ${song.album}")
+                    Text("Género: ${song.genre}")
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { /* seguir remoto */ }) { Text("Seguir") }
+                    Button(onClick = { /* mensaje remoto */ }) { Text("Mensaje") }
                 }
             }
         }
