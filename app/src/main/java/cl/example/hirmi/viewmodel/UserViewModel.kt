@@ -2,11 +2,12 @@ package cl.example.hirmi.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import cl.example.hirmi.api.ApiUser
 import cl.example.hirmi.model.User
 import cl.example.hirmi.repository.UserRepository
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import androidx.lifecycle.viewModelScope
 
 class UserViewModel(private val repo: UserRepository) : ViewModel() {
 
@@ -25,6 +26,16 @@ class UserViewModel(private val repo: UserRepository) : ViewModel() {
     private val _lastDistance = MutableStateFlow(0)
     val lastDistance = _lastDistance.asStateFlow()
 
+    // === Estado de usuarios remotos (API externa) ===
+    private val _remoteUsers = MutableStateFlow<List<ApiUser>>(emptyList())
+    val remoteUsers = _remoteUsers.asStateFlow()
+
+    private val _remoteLoading = MutableStateFlow(false)
+    val remoteLoading = _remoteLoading.asStateFlow()
+
+    private val _remoteError = MutableStateFlow<String?>(null)
+    val remoteError = _remoteError.asStateFlow()
+
     init {
         // Carga inicial de usuarios en tiempo real
         viewModelScope.launch {
@@ -32,9 +43,14 @@ class UserViewModel(private val repo: UserRepository) : ViewModel() {
         }
     }
 
-    // === Limpiar error ===
+    // === Limpiar error local ===
     fun clearError() {
         _error.value = null
+    }
+
+    // === Limpiar error remoto ===
+    fun clearRemoteError() {
+        _remoteError.value = null
     }
 
     // === Registro de usuario ===
@@ -95,7 +111,7 @@ class UserViewModel(private val repo: UserRepository) : ViewModel() {
         _lastDistance.value = 0
     }
 
-    // === Filtrado por distancia ===
+    // === Filtrado por distancia (local, Room) ===
     fun filterByDistance(maxDistance: Int) {
         viewModelScope.launch {
             repo.getUsersByDistanceStream(maxDistance).collect { list ->
@@ -107,7 +123,6 @@ class UserViewModel(private val repo: UserRepository) : ViewModel() {
         _lastDistance.value = maxDistance
     }
 
-    // === Eliminar usuario actual ===
     // === Eliminar usuario actual ===
     fun deleteUser(user: User) {
         viewModelScope.launch {
@@ -135,21 +150,26 @@ class UserViewModel(private val repo: UserRepository) : ViewModel() {
         }
     }
 
-    // === Reiniciar escaneo ===
+    // === Reiniciar escaneo local ===
     fun resetScan() {
         _scanned.value = false
         _lastDistance.value = 0
         refreshUsers()
     }
 
-
-
+    // === Generar usuarios iniciales simulados ===
     fun generateInitialUsersIfEmpty() {
         viewModelScope.launch {
             val currentUsers = _users.value
             if (currentUsers.isEmpty()) {
-                val nombres = listOf("Dario", "Camila", "Mateo", "Sofia", "Benjamin", "Lucas", "Valentina", "Nicolas", "Isabella", "Sebastian")
-                val apellidos = listOf("Meza", "Rojas", "Vidal", "Gonzalez", "Torres", "Morales", "Perez", "Romero", "Fernandez", "Sanchez")
+                val nombres = listOf(
+                    "Dario", "Camila", "Mateo", "Sofia", "Benjamin",
+                    "Lucas", "Valentina", "Nicolas", "Isabella", "Sebastian"
+                )
+                val apellidos = listOf(
+                    "Meza", "Rojas", "Vidal", "Gonzalez", "Torres",
+                    "Morales", "Perez", "Romero", "Fernandez", "Sanchez"
+                )
                 val canciones = listOf(
                     Triple("Blinding Lights", "The Weeknd", "After Hours"),
                     Triple("Shape of You", "Ed Sheeran", "Divide"),
@@ -187,13 +207,23 @@ class UserViewModel(private val repo: UserRepository) : ViewModel() {
         }
     }
 
+    // === Escaneo remoto: API externa (MockAPI) ===
+    fun scanRemoteUsers(maxDistance: Int) {
+        viewModelScope.launch {
+            _remoteLoading.value = true
+            _remoteError.value = null
 
+            val result = repo.scanRemoteUsers(maxDistance)
 
+            result
+                .onSuccess { users ->
+                    _remoteUsers.value = users
+                }
+                .onFailure { e ->
+                    _remoteError.value = "Error al obtener usuarios remotos: ${e.message}"
+                }
 
-
-
-
+            _remoteLoading.value = false
+        }
+    }
 }
-
-
-
