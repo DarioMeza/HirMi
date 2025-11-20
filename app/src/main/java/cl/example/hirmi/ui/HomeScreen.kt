@@ -312,7 +312,7 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                             .padding(16.dp)
                     ) {
                         Text(
-                            "Mostrando usuarios remotos a menos de $lastDistance metros",
+                            "Mostrando usuarios a menos de $lastDistance metros",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(bottom = 8.dp)
