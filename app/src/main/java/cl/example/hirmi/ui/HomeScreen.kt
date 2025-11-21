@@ -113,7 +113,7 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                         onClick = {
                             viewModel.logout()
                             showProfileModal = false
-                            navController.navigate("login") {
+                            navController.navigate("welcome") {
                                 popUpTo("home") { inclusive = true }
                             }
                         },

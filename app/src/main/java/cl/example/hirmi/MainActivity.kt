@@ -14,6 +14,8 @@ import cl.example.hirmi.repository.UserRepository
 import cl.example.hirmi.ui.HomeScreen
 import cl.example.hirmi.ui.LoginScreen
 import cl.example.hirmi.ui.RegisterScreen
+import cl.example.hirmi.ui.SplashScreen
+import cl.example.hirmi.ui.WelcomeScreen
 import cl.example.hirmi.ui.theme.HirMiTheme
 import cl.example.hirmi.viewmodel.UserViewModel
 import cl.example.hirmi.viewmodel.UserViewModelFactory
@@ -48,7 +50,15 @@ class MainActivity : ComponentActivity() {
                 viewModel.generateInitialUsersIfEmpty()
 
                 // === 6️⃣ Configurar navegación ===
-                NavHost(navController = navController, startDestination = "welcome") {
+                NavHost(
+                    navController = navController,
+                    startDestination = "splash"   // 👈 arranca en Splash
+                ) {
+                    composable("splash") { SplashScreen(navController, viewModel) }
+
+                    // 👇 Primera pantalla visible si NO hay sesión
+                    composable("welcome") { WelcomeScreen(navController) }
+
                     composable("login") { LoginScreen(navController, viewModel) }
                     composable("register") { RegisterScreen(navController, viewModel) }
                     composable("home") { HomeScreen(navController, viewModel) }

@@ -25,12 +25,15 @@ fun LoginScreen(navController: NavController, viewModel: UserViewModel) {
     var password by remember { mutableStateOf("") }
 
     val error by viewModel.error.collectAsState()
-    val scope = rememberCoroutineScope() // 👈 corrutina para el botón
+    val currentUser by viewModel.currentUser.collectAsState()
+    val isSessionChecked by viewModel.isSessionChecked.collectAsState()
+    val scope = rememberCoroutineScope()
 
     // Limpiar error al entrar
     LaunchedEffect(Unit) {
         viewModel.clearError()
     }
+
 
     Column(
         modifier = Modifier
@@ -77,10 +80,12 @@ fun LoginScreen(navController: NavController, viewModel: UserViewModel) {
 
         Button(
             onClick = {
-                scope.launch { // ✅ corrutina aquí
+                scope.launch {
                     val success = viewModel.login(username, password)
                     if (success) {
-                        navController.navigate("home")
+                        navController.navigate("home") {
+                            popUpTo("login") { inclusive = true }
+                        }
                     }
                 }
             },
