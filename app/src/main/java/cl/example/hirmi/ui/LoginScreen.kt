@@ -15,6 +15,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import cl.example.hirmi.ui.components.HirMiInputField
 import cl.example.hirmi.viewmodel.UserViewModel
 import kotlinx.coroutines.launch
 import cl.example.hirmi.R as res
@@ -34,6 +35,14 @@ fun LoginScreen(navController: NavController, viewModel: UserViewModel) {
         viewModel.clearError()
     }
 
+    // Auto-login si ya hay sesión
+    LaunchedEffect(isSessionChecked, currentUser) {
+        if (isSessionChecked && currentUser != null) {
+            navController.navigate("home") {
+                popUpTo("login") { inclusive = true }
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -57,21 +66,20 @@ fun LoginScreen(navController: NavController, viewModel: UserViewModel) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        OutlinedTextField(
+        HirMiInputField(
             value = username,
             onValueChange = { username = it },
-            label = { Text("Usuario") },
-            singleLine = true,
+            label = "Usuario",
             modifier = Modifier.fillMaxWidth()
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        OutlinedTextField(
+        HirMiInputField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Contraseña") },
-            singleLine = true,
+            label = "Contraseña",
+            isPassword = true,
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth()
         )
