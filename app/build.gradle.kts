@@ -83,4 +83,7 @@ dependencies {
 
     // OkHttp Logging (para ver las peticiones/respuestas en Logcat)
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+    // DataStore (para sesión persistente)
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
 }

@@ -26,7 +26,6 @@ class UserRepository(private val dao: UserDao) {
         dao.deleteAll()
     }
 
-
     suspend fun existsUsername(username: String): Boolean =
         dao.findByUsername(username) != null
 
@@ -36,20 +35,18 @@ class UserRepository(private val dao: UserDao) {
     suspend fun findByCredentials(username: String, password: String): User? =
         dao.login(username, password)
 
+    suspend fun getUserById(id: String): User? =
+        dao.findById(id)
+
     // === REMOTO: obtener usuarios desde la API externa ===
     suspend fun scanRemoteUsers(maxDistance: Int): Result<List<ApiUser>> {
         return try {
             val allUsers = RetrofitClient.apiService.getUsers()
-
-            // Filtramos por distancia en el cliente
             val filtered = allUsers.filter { it.distance <= maxDistance }
-
             Result.success(filtered)
         } catch (e: Exception) {
-            // Log simple para depuración
             println("Error al obtener usuarios remotos: ${e.message}")
             Result.failure(e)
         }
     }
 }
-

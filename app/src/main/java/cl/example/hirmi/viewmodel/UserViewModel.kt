@@ -3,13 +3,18 @@ package cl.example.hirmi.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cl.example.hirmi.api.ApiUser
+import cl.example.hirmi.datastore.SessionDataStore
 import cl.example.hirmi.model.User
 import cl.example.hirmi.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-class UserViewModel(private val repo: UserRepository) : ViewModel() {
+class UserViewModel(
+    private val repo: UserRepository,
+    private val session: SessionDataStore
+) : ViewModel() {
 
     private val _users = MutableStateFlow<List<User>>(emptyList())
     val users = _users.asStateFlow()
@@ -36,10 +41,24 @@ class UserViewModel(private val repo: UserRepository) : ViewModel() {
     private val _remoteError = MutableStateFlow<String?>(null)
     val remoteError = _remoteError.asStateFlow()
 
+    // === Estado de sesión (para saber cuándo ya se revisó DataStore) ===
+    private val _isSessionChecked = MutableStateFlow(false)
+    val isSessionChecked = _isSessionChecked.asStateFlow()
+
     init {
         // Carga inicial de usuarios en tiempo real
         viewModelScope.launch {
             repo.getUsersStream().collect { _users.value = it }
+        }
+
+        // Revisar sesión guardada en DataStore
+        viewModelScope.launch {
+            val savedUserId = session.loggedUserId.first()
+            if (savedUserId != null) {
+                val user = repo.getUserById(savedUserId)
+                _currentUser.value = user
+            }
+            _isSessionChecked.value = true
         }
     }
 
@@ -96,6 +115,10 @@ class UserViewModel(private val repo: UserRepository) : ViewModel() {
         return if (found != null) {
             _currentUser.value = found
             _error.value = null
+
+            // Guardar sesión en DataStore
+            session.saveUserSession(found.id)
+
             true
         } else {
             _error.value = "Usuario o contraseña incorrectos."
@@ -109,6 +132,10 @@ class UserViewModel(private val repo: UserRepository) : ViewModel() {
         _error.value = null
         _scanned.value = false
         _lastDistance.value = 0
+
+        viewModelScope.launch {
+            session.clearSession()
+        }
     }
 
     // === Filtrado por distancia (local, Room) ===
