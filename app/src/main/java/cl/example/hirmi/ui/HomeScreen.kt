@@ -23,13 +23,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,16 +40,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import cl.example.hirmi.api.ApiUser
-import cl.example.hirmi.model.User
 import cl.example.hirmi.viewmodel.UserViewModel
-import cl.example.hirmi.ui.components.HirMiPrimaryButton
-import cl.example.hirmi.ui.components.HirMiSecondaryButton
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
-    // Local (Room) – se sigue usando para perfil, etc.
+    // Local (Room) – solo para usuario actual / sesión
     val scanned by viewModel.scanned.collectAsState()
     val lastDistance by viewModel.lastDistance.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
@@ -68,7 +64,7 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
     if (showProfileModal && currentUser != null) {
         var showConfirmDelete by remember { mutableStateOf(false) }
 
-        // === Confirmación de eliminación ===
+        // Confirmación de eliminación
         if (showConfirmDelete) {
             AlertDialog(
                 onDismissRequest = { showConfirmDelete = false },
@@ -96,7 +92,7 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
             )
         }
 
-        // === Modal principal del perfil ===
+        // Modal principal del perfil
         AlertDialog(
             onDismissRequest = { showProfileModal = false },
             title = { Text("Mi perfil", fontWeight = FontWeight.Bold) },
@@ -124,7 +120,8 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color.Black,
-                            contentColor = Color.White)
+                            contentColor = Color.White
+                        )
                     ) {
                         Text("Cerrar sesión", color = Color.White)
                     }
@@ -178,7 +175,6 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                     onClick = {
                         scanDistance.toIntOrNull()?.let { distance ->
                             if (!isDistanceError) {
-                                viewModel.filterByDistance(distance)
                                 viewModel.scanRemoteUsers(distance)
                                 showDistanceModal = false
                             }
@@ -192,7 +188,6 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                     Text("Escanear")
                 }
             },
-
             dismissButton = {
                 TextButton(
                     onClick = { showDistanceModal = false },
@@ -203,9 +198,6 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                     Text("Cancelar")
                 }
             }
-
-
-
         )
     }
 
@@ -239,19 +231,18 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Color.Black,
                         selectedTextColor = Color.Black,
-                        indicatorColor = Color(0xFFE0E0E0),  // fondo del “pill” (gris claro)
+                        indicatorColor = Color(0xFFE0E0E0),
                         unselectedIconColor = Color.Gray,
                         unselectedTextColor = Color.Gray
                     )
                 )
             }
         },
-
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showDistanceModal = true },
-                containerColor = Color.Black,      // color de fondo
-                contentColor = Color.White         // color del icono
+                containerColor = Color.Black,
+                contentColor = Color.White
             ) {
                 Icon(Icons.Filled.Radar, contentDescription = "Escanear")
             }
@@ -261,11 +252,8 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
-
-
+                .padding(padding)
         ) {
-
             when {
                 remoteLoading -> {
                     // Loading mientras llamamos a la API
@@ -297,10 +285,13 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                             textAlign = TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = {
-                            viewModel.clearRemoteError()
-                            showDistanceModal = true
-                        }) {
+                        Button(
+                            onClick = { showDistanceModal = true },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.Black,
+                                contentColor = Color.White
+                            )
+                        ) {
                             Text("Intentar de nuevo")
                         }
                     }
@@ -357,65 +348,6 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                             }
                         }
                     }
-                }
-            }
-        }
-    }
-}
-
-// ================================= TARJETA DE USUARIO LOCAL ===========================================
-
-@Composable
-fun UserCard(user: User) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { expanded = !expanded },
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(60.dp)
-                        .clip(CircleShape)
-                        .background(Color.LightGray),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        "${user.firstName.first()}${user.lastName.first()}",
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column {
-                    Text("${user.firstName} ${user.lastName}", fontWeight = FontWeight.Bold)
-                    Text("@${user.username}", color = Color.Gray)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text("Canción: ${user.song?.title ?: "Sin canción"}", fontWeight = FontWeight.SemiBold)
-            Text("Artista: ${user.song?.artist ?: "Sin artista"}", fontWeight = FontWeight.SemiBold)
-            Text("Distancia: ${user.distance} metros")
-
-            var expandedInternal by remember { mutableStateOf(false) }
-
-            if (expandedInternal) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Divider()
-                Text("Álbum: ${user.song?.album ?: "N/A"}")
-                Text("Género: ${user.song?.genre ?: "N/A"}")
-
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { /* seguir */ }) { Text("Seguir") }
-                    Button(onClick = { /* mensaje */ }) { Text("Mensaje") }
                 }
             }
         }

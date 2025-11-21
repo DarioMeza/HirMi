@@ -138,17 +138,6 @@ class UserViewModel(
         }
     }
 
-    // === Filtrado por distancia (local, Room) ===
-    fun filterByDistance(maxDistance: Int) {
-        viewModelScope.launch {
-            repo.getUsersByDistanceStream(maxDistance).collect { list ->
-                val me = _currentUser.value
-                _users.value = if (me == null) list else list.filter { it.id != me.id }
-            }
-        }
-        _scanned.value = true
-        _lastDistance.value = maxDistance
-    }
 
     // === Eliminar usuario actual ===
     fun deleteUser(user: User) {
@@ -240,6 +229,10 @@ class UserViewModel(
             _remoteLoading.value = true
             _remoteError.value = null
 
+            // Marcar que se hizo un escaneo y guardar la distancia
+            _scanned.value = true
+            _lastDistance.value = maxDistance
+
             val result = repo.scanRemoteUsers(maxDistance)
 
             result
@@ -253,4 +246,5 @@ class UserViewModel(
             _remoteLoading.value = false
         }
     }
+
 }

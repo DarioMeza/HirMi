@@ -46,9 +46,6 @@ class MainActivity : ComponentActivity() {
                     factory = UserViewModelFactory(repo, sessionDataStore)
                 )
 
-                // === 5️⃣ Generar usuarios simulados (solo si la DB está vacía) ===
-                viewModel.generateInitialUsersIfEmpty()
-
                 // === 6️⃣ Configurar navegación ===
                 NavHost(
                     navController = navController,
