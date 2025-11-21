@@ -2,16 +2,9 @@ package cl.example.hirmi.repository
 
 import androidx.room.*
 import cl.example.hirmi.model.User
-import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface UserDao {
-
-    @Query("SELECT * FROM users")
-    fun getAll(): Flow<List<User>>
-
-    @Query("SELECT * FROM users WHERE distance <= :maxDistance")
-    fun getByDistance(maxDistance: Int): Flow<List<User>>
 
     @Query("SELECT * FROM users WHERE username = :username LIMIT 1")
     suspend fun findByUsername(username: String): User?

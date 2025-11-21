@@ -3,25 +3,19 @@ package cl.example.hirmi.repository
 import cl.example.hirmi.api.ApiUser
 import cl.example.hirmi.api.RetrofitClient
 import cl.example.hirmi.model.User
-import kotlinx.coroutines.flow.Flow
 
 class UserRepository(private val dao: UserDao) {
 
-    fun getUsersStream(): Flow<List<User>> = dao.getAll()
-
-    fun getUsersByDistanceStream(maxDistance: Int): Flow<List<User>> =
-        dao.getByDistance(maxDistance)
+    // === LOCAL: Room (registro, login, sesión) ===
 
     suspend fun addUser(user: User) {
         dao.insert(user)
     }
 
-    // === Eliminar un usuario específico ===
     suspend fun deleteUser(user: User) {
         dao.delete(user)
     }
 
-    // === Eliminar todos los usuarios ===
     suspend fun deleteAllUsers() {
         dao.deleteAll()
     }
@@ -38,7 +32,7 @@ class UserRepository(private val dao: UserDao) {
     suspend fun getUserById(id: String): User? =
         dao.findById(id)
 
-    // === REMOTO: obtener usuarios desde la API externa ===
+    // === REMOTO: obtener usuarios desde la API externa (MockAPI) ===
     suspend fun scanRemoteUsers(maxDistance: Int): Result<List<ApiUser>> {
         return try {
             val allUsers = RetrofitClient.apiService.getUsers()

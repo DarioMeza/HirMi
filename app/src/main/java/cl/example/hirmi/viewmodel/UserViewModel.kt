@@ -16,15 +16,15 @@ class UserViewModel(
     private val session: SessionDataStore
 ) : ViewModel() {
 
-    private val _users = MutableStateFlow<List<User>>(emptyList())
-    val users = _users.asStateFlow()
-
+    // === Estado de errores generales (registro/login) ===
     private val _error = MutableStateFlow<String?>(null)
     val error = _error.asStateFlow()
 
+    // === Usuario actual (logueado) ===
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser = _currentUser.asStateFlow()
 
+    // === Estado del escaneo remoto ===
     private val _scanned = MutableStateFlow(false)
     val scanned = _scanned.asStateFlow()
 
@@ -46,11 +46,6 @@ class UserViewModel(
     val isSessionChecked = _isSessionChecked.asStateFlow()
 
     init {
-        // Carga inicial de usuarios en tiempo real
-        viewModelScope.launch {
-            repo.getUsersStream().collect { _users.value = it }
-        }
-
         // Revisar sesión guardada en DataStore
         viewModelScope.launch {
             val savedUserId = session.loggedUserId.first()
@@ -62,17 +57,17 @@ class UserViewModel(
         }
     }
 
-    // === Limpiar error local ===
+    // === Limpiar error local (registro / login) ===
     fun clearError() {
         _error.value = null
     }
 
-    // === Limpiar error remoto ===
+    // === Limpiar error remoto (API) ===
     fun clearRemoteError() {
         _remoteError.value = null
     }
 
-    // === Registro de usuario ===
+    // === Registro de usuario (LOCAL: Room) ===
     suspend fun register(user: User): Boolean {
         if (user.firstName.isBlank() || user.lastName.isBlank() ||
             user.username.isBlank() || user.email.isBlank() ||
@@ -100,11 +95,10 @@ class UserViewModel(
 
         repo.addUser(user)
         _error.value = null
-        refreshUsers()
         return true
     }
 
-    // === Login ===
+    // === Login (LOCAL: Room + DataStore sesión) ===
     suspend fun login(username: String, password: String): Boolean {
         if (username.isBlank() || password.isBlank()) {
             _error.value = "Debes ingresar tu usuario y contraseña."
@@ -132,12 +126,13 @@ class UserViewModel(
         _error.value = null
         _scanned.value = false
         _lastDistance.value = 0
+        _remoteUsers.value = emptyList()
+        _remoteError.value = null
 
         viewModelScope.launch {
             session.clearSession()
         }
     }
-
 
     // === Eliminar usuario actual ===
     fun deleteUser(user: User) {
@@ -146,80 +141,14 @@ class UserViewModel(
             if (_currentUser.value?.id == user.id) {
                 logout()
             }
-            refreshUsers()
         }
     }
 
-    // === Eliminar todos los usuarios ===
+    // === Eliminar todos los usuarios locales ===
     fun deleteAllUsers() {
         viewModelScope.launch {
             repo.deleteAllUsers()
             logout()
-            refreshUsers()
-        }
-    }
-
-    // === Refrescar lista de usuarios ===
-    private fun refreshUsers() {
-        viewModelScope.launch {
-            repo.getUsersStream().collect { _users.value = it }
-        }
-    }
-
-    // === Reiniciar escaneo local ===
-    fun resetScan() {
-        _scanned.value = false
-        _lastDistance.value = 0
-        refreshUsers()
-    }
-
-    // === Generar usuarios iniciales simulados ===
-    fun generateInitialUsersIfEmpty() {
-        viewModelScope.launch {
-            val currentUsers = _users.value
-            if (currentUsers.isEmpty()) {
-                val nombres = listOf(
-                    "Dario", "Camila", "Mateo", "Sofia", "Benjamin",
-                    "Lucas", "Valentina", "Nicolas", "Isabella", "Sebastian"
-                )
-                val apellidos = listOf(
-                    "Meza", "Rojas", "Vidal", "Gonzalez", "Torres",
-                    "Morales", "Perez", "Romero", "Fernandez", "Sanchez"
-                )
-                val canciones = listOf(
-                    Triple("Blinding Lights", "The Weeknd", "After Hours"),
-                    Triple("Shape of You", "Ed Sheeran", "Divide"),
-                    Triple("Como Te Va", "Cris MJ", "Single"),
-                    Triple("Levitating", "Dua Lipa", "Future Nostalgia"),
-                    Triple("Dance Monkey", "Tones and I", "The Kids Are Coming")
-                )
-                val generos = listOf("Pop", "Reggaeton", "Rock", "Indie", "Electrónica")
-
-                repeat(15) {
-                    val nombre = nombres.random()
-                    val apellido = apellidos.random()
-                    val cancion = canciones.random()
-
-                    val user = User(
-                        id = java.util.UUID.randomUUID().toString(),
-                        firstName = nombre,
-                        lastName = apellido,
-                        username = "${nombre.lowercase()}${apellido.lowercase().first()}${(100..999).random()}",
-                        email = "${nombre.lowercase()}.${apellido.lowercase()}@example.com",
-                        password = "Test123A",
-                        birthdate = "1990/01/01",
-                        song = cl.example.hirmi.model.Song(
-                            title = cancion.first,
-                            artist = cancion.second,
-                            album = cancion.third,
-                            genre = generos.random(),
-                            duration = (120..280).random()
-                        ),
-                        distance = (1..100).random()
-                    )
-                    repo.addUser(user)
-                }
-            }
         }
     }
 
@@ -246,5 +175,4 @@ class UserViewModel(
             _remoteLoading.value = false
         }
     }
-
 }
