@@ -86,4 +86,8 @@ dependencies {
 
     // DataStore (para sesión persistente)
     implementation("androidx.datastore:datastore-preferences:1.1.1")
+
+    // Coil (carga de imágenes desde URL)
+    implementation("io.coil-kt:coil-compose:2.7.0")
+
 }

@@ -8,5 +8,6 @@ data class ApiUser(
     val lastName: String,
     val bio: String?,
     val distance: Int,
-    val song: Song?
+    val song: Song?,
+    val avatarUrl: String? = null  // 👈 NUEVO: foto opcional
 )

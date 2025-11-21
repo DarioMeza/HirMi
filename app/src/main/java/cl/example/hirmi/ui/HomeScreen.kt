@@ -41,6 +41,10 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import cl.example.hirmi.api.ApiUser
 import cl.example.hirmi.viewmodel.UserViewModel
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material3.CardDefaults
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -364,54 +368,157 @@ fun RemoteUserCard(user: ApiUser) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable { expanded = !expanded },
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // === HEADER: avatar + nombre + distancia ===
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Avatar con iniciales
+                    if (!user.avatarUrl.isNullOrBlank()) {
+                        // FOTO REMOTA
+                        AsyncImage(
+                            model = user.avatarUrl,
+                            contentDescription = "Foto de ${user.firstName}",
+                            modifier = Modifier
+                                .size(52.dp)
+                                .clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        // INICIALES (fallback)
+                        Box(
+                            modifier = Modifier
+                                .size(52.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "${user.firstName.first()}${user.lastName.first()}",
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
+                    }
+
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column {
+                        Text(
+                            text = "${user.firstName} ${user.lastName}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = user.bio ?: "Sin biografía",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray
+                        )
+                    }
+                }
+
+                // Pill de distancia
                 Box(
                     modifier = Modifier
-                        .size(60.dp)
-                        .clip(CircleShape)
-                        .background(Color.LightGray),
+                        .background(
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                            shape = RoundedCornerShape(50)
+                        )
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "${user.firstName.first()}${user.lastName.first()}",
-                        fontWeight = FontWeight.Bold
+                        text = "${user.distance} m",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column {
-                    Text("${user.firstName} ${user.lastName}", fontWeight = FontWeight.Bold)
-                    Text(user.bio ?: "Sin biografía", color = Color.Gray)
-                }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            Text("Distancia: ${user.distance} metros")
-
-            user.song?.let { song ->
-                Text("Canción: ${song.title}", fontWeight = FontWeight.SemiBold)
-                Text("Artista: ${song.artist}", fontWeight = FontWeight.SemiBold)
+            // === Canción principal ===
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.MusicNote,
+                    contentDescription = "Canción",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = user.song?.title ?: "Sin canción favorita",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
 
+            user.song?.artist?.let {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "de $it",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+            }
+
+            // === Zona expandida (más detalles) ===
             if (expanded) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 Divider()
+                Spacer(modifier = Modifier.height(8.dp))
+
                 user.song?.let { song ->
-                    Text("Álbum: ${song.album}")
-                    Text("Género: ${song.genre}")
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = "Álbum: ${song.album}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text(
+                            text = "Género: ${song.genre}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
+
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { /* seguir remoto */ }) { Text("Seguir") }
-                    Button(onClick = { /* mensaje remoto */ }) { Text("Mensaje") }
+                    Button(
+                        onClick = { /* seguir remoto */ },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Black,
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text("Seguir")
+                    }
+                    Button(
+                        onClick = { /* mensaje remoto */ },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.LightGray,
+                            contentColor = Color.Black
+                        )
+                    ) {
+                        Text("Mensaje")
+                    }
                 }
             }
         }
     }
 }
+
