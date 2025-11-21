@@ -23,6 +23,7 @@ import androidx.navigation.NavController
 import cl.example.hirmi.R
 import cl.example.hirmi.model.User
 import cl.example.hirmi.ui.components.HirMiInputField
+import cl.example.hirmi.ui.components.HirMiPrimaryButton
 import cl.example.hirmi.viewmodel.UserViewModel
 import kotlinx.coroutines.launch
 import java.util.*
@@ -126,7 +127,8 @@ fun RegisterScreen(navController: NavController, viewModel: UserViewModel) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Button(
+        HirMiPrimaryButton(
+            text = "Registrarse",
             onClick = {
                 scope.launch {
                     val user = User(
@@ -145,9 +147,7 @@ fun RegisterScreen(navController: NavController, viewModel: UserViewModel) {
                 }
             },
             modifier = Modifier.fillMaxWidth(0.6f)
-        ) {
-            Text("Registrarse")
-        }
+        )
 
         if (!error.isNullOrEmpty()) {
             Spacer(modifier = Modifier.height(12.dp))

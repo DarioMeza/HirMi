@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import cl.example.hirmi.ui.components.HirMiInputField
+import cl.example.hirmi.ui.components.HirMiPrimaryButton
 import cl.example.hirmi.viewmodel.UserViewModel
 import kotlinx.coroutines.launch
 import cl.example.hirmi.R as res
@@ -86,21 +87,18 @@ fun LoginScreen(navController: NavController, viewModel: UserViewModel) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(
+        HirMiPrimaryButton(
+            text = "Iniciar sesión",
             onClick = {
                 scope.launch {
                     val success = viewModel.login(username, password)
                     if (success) {
-                        navController.navigate("home") {
-                            popUpTo("login") { inclusive = true }
-                        }
+                        navController.navigate("home")
                     }
                 }
             },
             modifier = Modifier.fillMaxWidth(0.7f)
-        ) {
-            Text("Iniciar sesión")
-        }
+        )
 
         if (!error.isNullOrEmpty()) {
             Spacer(modifier = Modifier.height(12.dp))

@@ -12,6 +12,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import cl.example.hirmi.R
+import cl.example.hirmi.ui.components.HirMiPrimaryButton
+import cl.example.hirmi.ui.components.HirMiSecondaryButton
 import cl.example.hirmi.ui.theme.HirMiTheme
 
 @Composable
@@ -66,25 +68,19 @@ fun WelcomeScreen(navController: NavController, modifier: Modifier = Modifier) {
                     .padding(bottom = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Button(
-                    onClick = { navController.navigate("register") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                ) {
-                    Text(text = "Registrarse")
-                }
+                HirMiPrimaryButton(
+                    text = "Registrarse",
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    onClick = { navController.navigate("register") }
+                )
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                OutlinedButton(
-                    onClick = {navController.navigate("login") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                ) {
-                    Text(text = "Iniciar Sesión")
-                }
+                HirMiSecondaryButton(
+                    text = "Iniciar Sesión",
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    onClick = { navController.navigate("login") }
+                )
             }
         }
     }

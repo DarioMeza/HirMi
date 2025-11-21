@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,6 +42,9 @@ import androidx.navigation.NavController
 import cl.example.hirmi.api.ApiUser
 import cl.example.hirmi.model.User
 import cl.example.hirmi.viewmodel.UserViewModel
+import cl.example.hirmi.ui.components.HirMiPrimaryButton
+import cl.example.hirmi.ui.components.HirMiSecondaryButton
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -118,7 +122,9 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Black,
+                            contentColor = Color.White)
                     ) {
                         Text("Cerrar sesión", color = Color.White)
                     }
@@ -172,21 +178,34 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                     onClick = {
                         scanDistance.toIntOrNull()?.let { distance ->
                             if (!isDistanceError) {
-                                // Usamos el filtrado local solo para marcar "scanned" y guardar lastDistance,
-                                // pero la lista que se muestra será la remota.
                                 viewModel.filterByDistance(distance)
                                 viewModel.scanRemoteUsers(distance)
                                 showDistanceModal = false
                             }
                         }
-                    }
-                ) { Text("Escanear") }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Black,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text("Escanear")
+                }
             },
+
             dismissButton = {
-                TextButton(onClick = { showDistanceModal = false }) {
+                TextButton(
+                    onClick = { showDistanceModal = false },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = Color.Black
+                    )
+                ) {
                     Text("Cancelar")
                 }
             }
+
+
+
         )
     }
 
@@ -216,12 +235,24 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                     icon = { Icon(Icons.Filled.Home, contentDescription = "Inicio") },
                     label = { Text("Inicio") },
                     selected = true,
-                    onClick = { /* ya estás en Home */ }
+                    onClick = { /* ya estás en Home */ },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Color.Black,
+                        selectedTextColor = Color.Black,
+                        indicatorColor = Color(0xFFE0E0E0),  // fondo del “pill” (gris claro)
+                        unselectedIconColor = Color.Gray,
+                        unselectedTextColor = Color.Gray
+                    )
                 )
             }
         },
+
         floatingActionButton = {
-            FloatingActionButton(onClick = { showDistanceModal = true }) {
+            FloatingActionButton(
+                onClick = { showDistanceModal = true },
+                containerColor = Color.Black,      // color de fondo
+                contentColor = Color.White         // color del icono
+            ) {
                 Icon(Icons.Filled.Radar, contentDescription = "Escanear")
             }
         },
@@ -230,7 +261,9 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(padding),
+
+
         ) {
 
             when {
