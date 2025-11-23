@@ -11,10 +11,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Radar
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
@@ -35,15 +37,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import cl.example.hirmi.api.ApiUser
 import cl.example.hirmi.viewmodel.UserViewModel
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material3.CardDefaults
-import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,6 +58,9 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
     val remoteUsers by viewModel.remoteUsers.collectAsState()
     val remoteLoading by viewModel.remoteLoading.collectAsState()
     val remoteError by viewModel.remoteError.collectAsState()
+
+    // Follows remotos (MockAPI)
+    val remoteFollows by viewModel.remoteFollows.collectAsState()
 
     var showDistanceModal by remember { mutableStateOf(false) }
     var showProfileModal by remember { mutableStateOf(false) }
@@ -348,7 +351,16 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
 
                         LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             items(remoteUsers) { user ->
-                                RemoteUserCard(user)
+                                val isFollowing = remoteFollows.containsKey(user.id)
+
+                                RemoteUserCard(
+                                    user = user,
+                                    isFollowing = isFollowing,
+                                    onFollowClick = { viewModel.toggleFollowFor(user) },
+                                    onMessageClick = {
+                                        // TODO: Navegar a ChatScreen en la versión de mensajes
+                                    }
+                                )
                             }
                         }
                     }
@@ -361,7 +373,12 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
 // ================================= TARJETA DE USUARIO REMOTO (API) ====================================
 
 @Composable
-fun RemoteUserCard(user: ApiUser) {
+fun RemoteUserCard(
+    user: ApiUser,
+    isFollowing: Boolean,
+    onFollowClick: () -> Unit,
+    onMessageClick: () -> Unit
+) {
     var expanded by remember { mutableStateOf(false) }
 
     Card(
@@ -387,7 +404,7 @@ fun RemoteUserCard(user: ApiUser) {
             ) {
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Avatar con iniciales
+                    // Avatar con iniciales o foto
                     if (!user.avatarUrl.isNullOrBlank()) {
                         // FOTO REMOTA
                         AsyncImage(
@@ -399,7 +416,12 @@ fun RemoteUserCard(user: ApiUser) {
                             contentScale = ContentScale.Crop
                         )
                     } else {
-                        // INICIALES (fallback)
+                        // INICIALES (fallback) SEGURAS
+                        val initials = buildString {
+                            user.firstName.firstOrNull()?.let { append(it) }
+                            user.lastName.firstOrNull()?.let { append(it) }
+                        }.ifEmpty { "?" }
+
                         Box(
                             modifier = Modifier
                                 .size(52.dp)
@@ -408,13 +430,12 @@ fun RemoteUserCard(user: ApiUser) {
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                "${user.firstName.first()}${user.lastName.first()}",
+                                initials,
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.titleMedium
                             )
                         }
                     }
-
 
                     Spacer(modifier = Modifier.width(12.dp))
 
@@ -455,7 +476,7 @@ fun RemoteUserCard(user: ApiUser) {
             // === Canción principal ===
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
-                    imageVector = Icons.Default.MusicNote,
+                    imageVector = Icons.Filled.MusicNote,
                     contentDescription = "Canción",
                     tint = MaterialTheme.colorScheme.primary
                 )
@@ -499,16 +520,16 @@ fun RemoteUserCard(user: ApiUser) {
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
-                        onClick = { /* seguir remoto */ },
+                        onClick = onFollowClick,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color.Black,
                             contentColor = Color.White
                         )
                     ) {
-                        Text("Seguir")
+                        Text(if (isFollowing) "Siguiendo" else "Seguir")
                     }
                     Button(
-                        onClick = { /* mensaje remoto */ },
+                        onClick = onMessageClick,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color.LightGray,
                             contentColor = Color.Black
@@ -521,4 +542,3 @@ fun RemoteUserCard(user: ApiUser) {
         }
     }
 }
-
