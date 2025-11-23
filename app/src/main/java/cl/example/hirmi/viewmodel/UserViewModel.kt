@@ -3,6 +3,7 @@ package cl.example.hirmi.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cl.example.hirmi.api.ApiUser
+import cl.example.hirmi.api.FollowResponse
 import cl.example.hirmi.datastore.SessionDataStore
 import cl.example.hirmi.model.User
 import cl.example.hirmi.repository.UserRepository
@@ -45,6 +46,11 @@ class UserViewModel(
     private val _isSessionChecked = MutableStateFlow(false)
     val isSessionChecked = _isSessionChecked.asStateFlow()
 
+    // === Follows remotos (MockAPI) ===
+    // Mapa: key = followedId (ApiUser.id), value = FollowResponse
+    private val _remoteFollows = MutableStateFlow<Map<String, FollowResponse>>(emptyMap())
+    val remoteFollows = _remoteFollows.asStateFlow()
+
     init {
         // Revisar sesión guardada en DataStore
         viewModelScope.launch {
@@ -52,6 +58,11 @@ class UserViewModel(
             if (savedUserId != null) {
                 val user = repo.getUserById(savedUserId)
                 _currentUser.value = user
+
+                // Si hay usuario logueado, cargar sus follows desde MockAPI
+                user?.let {
+                    loadRemoteFollowsForUser(it.id)
+                }
             }
             _isSessionChecked.value = true
         }
@@ -113,6 +124,9 @@ class UserViewModel(
             // Guardar sesión en DataStore
             session.saveUserSession(found.id)
 
+            // Cargar follows desde MockAPI para este usuario
+            loadRemoteFollowsForUser(found.id)
+
             true
         } else {
             _error.value = "Usuario o contraseña incorrectos."
@@ -128,6 +142,7 @@ class UserViewModel(
         _lastDistance.value = 0
         _remoteUsers.value = emptyList()
         _remoteError.value = null
+        _remoteFollows.value = emptyMap()
 
         viewModelScope.launch {
             session.clearSession()
@@ -167,12 +182,68 @@ class UserViewModel(
             result
                 .onSuccess { users ->
                     _remoteUsers.value = users
+
+                    // Limpiar follows que apunten a usuarios que ya no están en la lista
+                    val validIds = users.map { it.id }.toSet()
+                    _remoteFollows.value = _remoteFollows.value.filterKeys { it in validIds }
                 }
                 .onFailure { e ->
                     _remoteError.value = "Error al obtener usuarios remotos: ${e.message}"
                 }
 
             _remoteLoading.value = false
+        }
+    }
+
+    // === Cargar follows desde MockAPI para el usuario local ===
+    private fun loadRemoteFollowsForUser(localUserId: String) {
+        viewModelScope.launch {
+            val result = repo.getFollowsForUser(localUserId)
+            result
+                .onSuccess { follows ->
+                    _remoteFollows.value = follows.associateBy { it.followedId }
+                }
+                .onFailure { e ->
+                    // No rompemos nada, solo mostramos error remoto genérico
+                    _remoteError.value = "Error al cargar follows: ${e.message}"
+                }
+        }
+    }
+
+    // === Toggle de follow REAL (MockAPI) para un usuario remoto ===
+    fun toggleFollowFor(remoteUser: ApiUser) {
+        val localUserId = _currentUser.value?.id ?: run {
+            _remoteError.value = "Debes iniciar sesión para seguir usuarios."
+            return
+        }
+
+        val currentMap = _remoteFollows.value
+        val existingFollow = currentMap[remoteUser.id]
+
+        if (existingFollow != null) {
+            // Ya lo sigo -> hacer UNFOLLOW
+            viewModelScope.launch {
+                val result = repo.unfollow(existingFollow.id)
+                result
+                    .onSuccess {
+                        _remoteFollows.value = _remoteFollows.value - remoteUser.id
+                    }
+                    .onFailure { e ->
+                        _remoteError.value = "Error al dejar de seguir: ${e.message}"
+                    }
+            }
+        } else {
+            // No lo sigo -> hacer FOLLOW
+            viewModelScope.launch {
+                val result = repo.followUser(localUserId, remoteUser.id)
+                result
+                    .onSuccess { follow ->
+                        _remoteFollows.value = _remoteFollows.value + (remoteUser.id to follow)
+                    }
+                    .onFailure { e ->
+                        _remoteError.value = "Error al seguir usuario: ${e.message}"
+                    }
+            }
         }
     }
 }
