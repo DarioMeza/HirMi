@@ -1,6 +1,8 @@
 package cl.example.hirmi.repository
 
 import cl.example.hirmi.api.ApiUser
+import cl.example.hirmi.api.FollowRequest
+import cl.example.hirmi.api.FollowResponse
 import cl.example.hirmi.api.RetrofitClient
 import cl.example.hirmi.model.User
 
@@ -40,6 +42,45 @@ class UserRepository(private val dao: UserDao) {
             Result.success(filtered)
         } catch (e: Exception) {
             println("Error al obtener usuarios remotos: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    // === REMOTO: FOLLOWS en MockAPI ===
+
+    // Obtener todos los follows del usuario local
+    suspend fun getFollowsForUser(localUserId: String): Result<List<FollowResponse>> {
+        return try {
+            val follows = RetrofitClient.apiService.getFollows(followerId = localUserId)
+            Result.success(follows)
+        } catch (e: Exception) {
+            println("Error al obtener follows: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    // Seguir a un usuario remoto
+    suspend fun followUser(localUserId: String, remoteUserId: String): Result<FollowResponse> {
+        return try {
+            val request = FollowRequest(
+                followerId = localUserId,
+                followedId = remoteUserId
+            )
+            val response = RetrofitClient.apiService.createFollow(request)
+            Result.success(response)
+        } catch (e: Exception) {
+            println("Error al crear follow: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    // Dejar de seguir (unfollow) usando el ID del follow en MockAPI
+    suspend fun unfollow(followId: String): Result<Unit> {
+        return try {
+            RetrofitClient.apiService.deleteFollow(followId)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            println("Error al eliminar follow: ${e.message}")
             Result.failure(e)
         }
     }
