@@ -46,6 +46,12 @@ import cl.example.hirmi.api.ApiUser
 import cl.example.hirmi.viewmodel.UserViewModel
 import coil.compose.AsyncImage
 
+// Tabs internos de la Home
+enum class HomeTab {
+    INICIO,
+    AMIGOS
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
@@ -67,11 +73,13 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
     var scanDistance by remember { mutableStateOf("100") }
     var isDistanceError by remember { mutableStateOf(false) }
 
+    // Tab seleccionado en la barra inferior (Inicio por defecto)
+    var selectedTab by remember { mutableStateOf(HomeTab.INICIO) }
+
     // ============================= MODAL DE PERFIL =============================
     if (showProfileModal && currentUser != null) {
         var showConfirmDelete by remember { mutableStateOf(false) }
 
-        // Confirmación de eliminación
         if (showConfirmDelete) {
             AlertDialog(
                 onDismissRequest = { showConfirmDelete = false },
@@ -99,7 +107,6 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
             )
         }
 
-        // Modal principal del perfil
         AlertDialog(
             onDismissRequest = { showProfileModal = false },
             title = { Text("Mi perfil", fontWeight = FontWeight.Bold) },
@@ -115,7 +122,6 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Botón de cerrar sesión
                     Button(
                         onClick = {
                             viewModel.logout()
@@ -133,7 +139,6 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                         Text("Cerrar sesión", color = Color.White)
                     }
 
-                    // Botón de eliminar cuenta
                     Button(
                         onClick = { showConfirmDelete = true },
                         modifier = Modifier.fillMaxWidth(),
@@ -233,8 +238,21 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                 NavigationBarItem(
                     icon = { Icon(Icons.Filled.Home, contentDescription = "Inicio") },
                     label = { Text("Inicio") },
-                    selected = true,
-                    onClick = { /* ya estás en Home */ },
+                    selected = selectedTab == HomeTab.INICIO,
+                    onClick = { selectedTab = HomeTab.INICIO },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Color.Black,
+                        selectedTextColor = Color.Black,
+                        indicatorColor = Color(0xFFE0E0E0),
+                        unselectedIconColor = Color.Gray,
+                        unselectedTextColor = Color.Gray
+                    )
+                )
+                NavigationBarItem(
+                    icon = { Icon(Icons.Filled.Person, contentDescription = "Amigos") },
+                    label = { Text("Amigos") },
+                    selected = selectedTab == HomeTab.AMIGOS,
+                    onClick = { selectedTab = HomeTab.AMIGOS },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Color.Black,
                         selectedTextColor = Color.Black,
@@ -263,7 +281,6 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
         ) {
             when {
                 remoteLoading -> {
-                    // Loading mientras llamamos a la API
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -278,7 +295,6 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                 }
 
                 remoteError != null -> {
-                    // Mensaje de error si la API falla
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -304,63 +320,132 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                     }
                 }
 
-                !scanned -> {
-                    // Mensaje inicial antes de escanear
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            "Pulsa el botón para comenzar a buscar personas cercanas",
-                            color = Color.Gray,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
-
-                remoteUsers.isEmpty() -> {
-                    // No hubo resultados remotos
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            "No se encontraron usuarios a menos de $lastDistance metros.",
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
-
                 else -> {
-                    // Lista de usuarios remotos obtenidos desde la API
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp)
-                    ) {
-                        Text(
-                            "Mostrando usuarios a menos de $lastDistance metros",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        )
+                    val followingUsers = remoteUsers.filter { remoteFollows.containsKey(it.id) }
+                    val otherUsers = if (scanned) {
+                        remoteUsers.filterNot { remoteFollows.containsKey(it.id) }
+                    } else {
+                        emptyList()
+                    }
 
-                        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            items(remoteUsers) { user ->
-                                val isFollowing = remoteFollows.containsKey(user.id)
+                    when (selectedTab) {
+                        HomeTab.INICIO -> {
+                            // Inicio: Amigos siempre que existan, Personas cercanas solo si scanned == true
+                            if (followingUsers.isEmpty() && !scanned) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "Aún no sigues a nadie.\nExplora personas cercanas con el radar.",
+                                        textAlign = TextAlign.Center,
+                                        color = Color.Gray
+                                    )
+                                }
+                            } else {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(16.dp)
+                                ) {
+                                    if (followingUsers.isNotEmpty()) {
+                                        Text(
+                                            text = "Amigos",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(bottom = 8.dp)
+                                        )
 
-                                RemoteUserCard(
-                                    user = user,
-                                    isFollowing = isFollowing,
-                                    onFollowClick = { viewModel.toggleFollowFor(user) },
-                                    onMessageClick = {
-                                        // TODO: Navegar a ChatScreen en la versión de mensajes
+                                        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                            items(followingUsers) { user ->
+                                                RemoteUserCard(
+                                                    user = user,
+                                                    isFollowing = true,
+                                                    onFollowClick = { viewModel.toggleFollowFor(user) },
+                                                    onMessageClick = {
+                                                        // TODO: Navegar a ChatScreen
+                                                    }
+                                                )
+                                            }
+
+                                            if (otherUsers.isNotEmpty()) {
+                                                item {
+                                                    Spacer(modifier = Modifier.height(12.dp))
+                                                    Divider()
+                                                    Spacer(modifier = Modifier.height(12.dp))
+                                                }
+                                            }
+                                        }
                                     }
-                                )
+
+                                    if (scanned && otherUsers.isNotEmpty()) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            text = "Personas cercanas (≤ $lastDistance m)",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(vertical = 8.dp)
+                                        )
+
+                                        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                            items(otherUsers) { user ->
+                                                RemoteUserCard(
+                                                    user = user,
+                                                    isFollowing = remoteFollows.containsKey(user.id),
+                                                    onFollowClick = { viewModel.toggleFollowFor(user) },
+                                                    onMessageClick = {
+                                                        // TODO: Navegar a ChatScreen
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        HomeTab.AMIGOS -> {
+                            if (followingUsers.isEmpty()) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "Todavía no sigues a nadie.\nExplora en Inicio para encontrar personas.",
+                                        textAlign = TextAlign.Center,
+                                        color = Color.Gray
+                                    )
+                                }
+                            } else {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(16.dp)
+                                ) {
+                                    Text(
+                                        text = "Amigos",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(bottom = 8.dp)
+                                    )
+
+                                    LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        items(followingUsers) { user ->
+                                            RemoteUserCard(
+                                                user = user,
+                                                isFollowing = true,
+                                                onFollowClick = { viewModel.toggleFollowFor(user) },
+                                                onMessageClick = {
+                                                    // TODO: Navegar a ChatScreen
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -396,7 +481,7 @@ fun RemoteUserCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // === HEADER: avatar + nombre + distancia ===
+            // HEADER: avatar + nombre + distancia
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -404,9 +489,7 @@ fun RemoteUserCard(
             ) {
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Avatar con iniciales o foto
                     if (!user.avatarUrl.isNullOrBlank()) {
-                        // FOTO REMOTA
                         AsyncImage(
                             model = user.avatarUrl,
                             contentDescription = "Foto de ${user.firstName}",
@@ -416,7 +499,6 @@ fun RemoteUserCard(
                             contentScale = ContentScale.Crop
                         )
                     } else {
-                        // INICIALES (fallback) SEGURAS
                         val initials = buildString {
                             user.firstName.firstOrNull()?.let { append(it) }
                             user.lastName.firstOrNull()?.let { append(it) }
@@ -453,7 +535,6 @@ fun RemoteUserCard(
                     }
                 }
 
-                // Pill de distancia
                 Box(
                     modifier = Modifier
                         .background(
@@ -473,7 +554,7 @@ fun RemoteUserCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // === Canción principal ===
+            // Canción principal
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Filled.MusicNote,
@@ -497,7 +578,6 @@ fun RemoteUserCard(
                 )
             }
 
-            // === Zona expandida (más detalles) ===
             if (expanded) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Divider()
@@ -539,6 +619,17 @@ fun RemoteUserCard(
                     }
                 }
             }
+
+            // Expansión al tocar la card
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = if (expanded) "Ver menos" else "Ver más",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.Gray,
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .clickable { expanded = !expanded }
+            )
         }
     }
 }
