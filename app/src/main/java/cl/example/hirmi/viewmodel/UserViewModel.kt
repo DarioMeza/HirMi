@@ -59,9 +59,10 @@ class UserViewModel(
                 val user = repo.getUserById(savedUserId)
                 _currentUser.value = user
 
-                // Si hay usuario logueado, cargar sus follows desde MockAPI
+                // Si hay usuario logueado, cargar sus follows y usuarios remotos para amigos
                 user?.let {
                     loadRemoteFollowsForUser(it.id)
+                    preloadRemoteUsersForFriends()
                 }
             }
             _isSessionChecked.value = true
@@ -124,8 +125,9 @@ class UserViewModel(
             // Guardar sesión en DataStore
             session.saveUserSession(found.id)
 
-            // Cargar follows desde MockAPI para este usuario
+            // Cargar follows y usuarios remotos para amigos
             loadRemoteFollowsForUser(found.id)
+            preloadRemoteUsersForFriends()
 
             true
         } else {
@@ -168,6 +170,7 @@ class UserViewModel(
     }
 
     // === Escaneo remoto: API externa (MockAPI) ===
+    // Se usa SOLO cuando el usuario aprieta el botón Radar.
     fun scanRemoteUsers(maxDistance: Int) {
         viewModelScope.launch {
             _remoteLoading.value = true
@@ -195,6 +198,22 @@ class UserViewModel(
         }
     }
 
+    // === PRE-CARGA de usuarios remotos para amigos (sin marcar scanned) ===
+    private fun preloadRemoteUsersForFriends() {
+        viewModelScope.launch {
+            // Usamos 100 metros como radio "global" para HirMi en MockAPI
+            val result = repo.scanRemoteUsers(100)
+            result
+                .onSuccess { users ->
+                    // Solo llenamos la lista, no tocamos _scanned ni _lastDistance
+                    _remoteUsers.value = users
+                }
+                .onFailure { e ->
+                    _remoteError.value = "Error al precargar usuarios remotos: ${e.message}"
+                }
+        }
+    }
+
     // === Cargar follows desde MockAPI para el usuario local ===
     private fun loadRemoteFollowsForUser(localUserId: String) {
         viewModelScope.launch {
@@ -204,7 +223,6 @@ class UserViewModel(
                     _remoteFollows.value = follows.associateBy { it.followedId }
                 }
                 .onFailure { e ->
-                    // No rompemos nada, solo mostramos error remoto genérico
                     _remoteError.value = "Error al cargar follows: ${e.message}"
                 }
         }
