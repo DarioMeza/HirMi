@@ -90,4 +90,6 @@ dependencies {
     // Coil (carga de imágenes desde URL)
     implementation("io.coil-kt:coil-compose:2.7.0")
 
+    // Moshi (para @Json)
+    implementation("com.squareup.moshi:moshi-kotlin:1.15.0")
 }
