@@ -323,15 +323,15 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                 else -> {
                     val followingUsers = remoteUsers.filter { remoteFollows.containsKey(it.id) }
                     val otherUsers = if (scanned) {
-                        remoteUsers.filterNot { remoteFollows.containsKey(it.id) }
+                        remoteUsers
                     } else {
                         emptyList()
                     }
 
                     when (selectedTab) {
                         HomeTab.INICIO -> {
-                            // Inicio: Amigos siempre que existan, Personas cercanas solo si scanned == true
-                            if (followingUsers.isEmpty() && !scanned) {
+                            // SOLO PERSONAS CERCANAS, sin sección de Amigos
+                            if (!scanned) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
@@ -339,9 +339,21 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        text = "Aún no sigues a nadie.\nExplora personas cercanas con el radar.",
+                                        text = "Pulsa el botón de radar para buscar personas cercanas.",
                                         textAlign = TextAlign.Center,
                                         color = Color.Gray
+                                    )
+                                }
+                            } else if (otherUsers.isEmpty()) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "No se encontraron usuarios a menos de $lastDistance metros.",
+                                        textAlign = TextAlign.Center
                                     )
                                 }
                             } else {
@@ -350,56 +362,24 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                                         .fillMaxSize()
                                         .padding(16.dp)
                                 ) {
-                                    if (followingUsers.isNotEmpty()) {
-                                        Text(
-                                            text = "Amigos",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(bottom = 8.dp)
-                                        )
+                                    Text(
+                                        text = "Personas cercanas (≤ $lastDistance m)",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(bottom = 8.dp)
+                                    )
 
-                                        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                            items(followingUsers) { user ->
-                                                RemoteUserCard(
-                                                    user = user,
-                                                    isFollowing = true,
-                                                    onFollowClick = { viewModel.toggleFollowFor(user) },
-                                                    onMessageClick = {
-                                                        // TODO: Navegar a ChatScreen
-                                                    }
-                                                )
-                                            }
-
-                                            if (otherUsers.isNotEmpty()) {
-                                                item {
-                                                    Spacer(modifier = Modifier.height(12.dp))
-                                                    Divider()
-                                                    Spacer(modifier = Modifier.height(12.dp))
+                                    LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        items(otherUsers) { user ->
+                                            val isFollowing = remoteFollows.containsKey(user.id)
+                                            RemoteUserCard(
+                                                user = user,
+                                                isFollowing = isFollowing,
+                                                onFollowClick = { viewModel.toggleFollowFor(user) },
+                                                onMessageClick = {
+                                                    // TODO: Navegar a ChatScreen
                                                 }
-                                            }
-                                        }
-                                    }
-
-                                    if (scanned && otherUsers.isNotEmpty()) {
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Text(
-                                            text = "Personas cercanas (≤ $lastDistance m)",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(vertical = 8.dp)
-                                        )
-
-                                        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                            items(otherUsers) { user ->
-                                                RemoteUserCard(
-                                                    user = user,
-                                                    isFollowing = remoteFollows.containsKey(user.id),
-                                                    onFollowClick = { viewModel.toggleFollowFor(user) },
-                                                    onMessageClick = {
-                                                        // TODO: Navegar a ChatScreen
-                                                    }
-                                                )
-                                            }
+                                            )
                                         }
                                     }
                                 }
@@ -407,6 +387,7 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                         }
 
                         HomeTab.AMIGOS -> {
+                            // SOLO AMIGOS (seguidos)
                             if (followingUsers.isEmpty()) {
                                 Box(
                                     modifier = Modifier
@@ -620,7 +601,7 @@ fun RemoteUserCard(
                 }
             }
 
-            // Expansión al tocar la card
+            // Expansión al tocar el texto
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = if (expanded) "Ver menos" else "Ver más",
