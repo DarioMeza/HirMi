@@ -14,6 +14,10 @@ class UserRepository(private val dao: UserDao) {
         dao.insert(user)
     }
 
+    suspend fun updateUserLocal(user: User) {
+        dao.updateUser(user)
+    }
+
     suspend fun deleteUser(user: User) {
         dao.delete(user)
     }
@@ -48,7 +52,6 @@ class UserRepository(private val dao: UserDao) {
 
     // === REMOTO: FOLLOWS en MockAPI ===
 
-    // Obtener todos los follows del usuario local
     suspend fun getFollowsForUser(localUserId: String): Result<List<FollowResponse>> {
         return try {
             val follows = RetrofitClient.apiService.getFollows(followerId = localUserId)
@@ -59,7 +62,6 @@ class UserRepository(private val dao: UserDao) {
         }
     }
 
-    // Seguir a un usuario remoto
     suspend fun followUser(localUserId: String, remoteUserId: String): Result<FollowResponse> {
         return try {
             val request = FollowRequest(
@@ -74,7 +76,6 @@ class UserRepository(private val dao: UserDao) {
         }
     }
 
-    // Dejar de seguir (unfollow) usando el ID del follow en MockAPI
     suspend fun unfollow(followId: String): Result<Unit> {
         return try {
             RetrofitClient.apiService.deleteFollow(followId)

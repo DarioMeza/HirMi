@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import cl.example.hirmi.api.ApiUser
 import cl.example.hirmi.api.FollowResponse
 import cl.example.hirmi.datastore.SessionDataStore
+import cl.example.hirmi.model.Song
 import cl.example.hirmi.model.User
 import cl.example.hirmi.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,22 +18,18 @@ class UserViewModel(
     private val session: SessionDataStore
 ) : ViewModel() {
 
-    // === Estado de errores generales (registro/login) ===
     private val _error = MutableStateFlow<String?>(null)
     val error = _error.asStateFlow()
 
-    // === Usuario actual (logueado) ===
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser = _currentUser.asStateFlow()
 
-    // === Estado del escaneo remoto ===
     private val _scanned = MutableStateFlow(false)
     val scanned = _scanned.asStateFlow()
 
     private val _lastDistance = MutableStateFlow(0)
     val lastDistance = _lastDistance.asStateFlow()
 
-    // === Estado de usuarios remotos (API externa) ===
     private val _remoteUsers = MutableStateFlow<List<ApiUser>>(emptyList())
     val remoteUsers = _remoteUsers.asStateFlow()
 
@@ -42,24 +39,19 @@ class UserViewModel(
     private val _remoteError = MutableStateFlow<String?>(null)
     val remoteError = _remoteError.asStateFlow()
 
-    // === Estado de sesión (para saber cuándo ya se revisó DataStore) ===
     private val _isSessionChecked = MutableStateFlow(false)
     val isSessionChecked = _isSessionChecked.asStateFlow()
 
-    // === Follows remotos (MockAPI) ===
-    // Mapa: key = followedId (ApiUser.id), value = FollowResponse
     private val _remoteFollows = MutableStateFlow<Map<String, FollowResponse>>(emptyMap())
     val remoteFollows = _remoteFollows.asStateFlow()
 
     init {
-        // Revisar sesión guardada en DataStore
         viewModelScope.launch {
             val savedUserId = session.loggedUserId.first()
             if (savedUserId != null) {
                 val user = repo.getUserById(savedUserId)
                 _currentUser.value = user
 
-                // Si hay usuario logueado, cargar sus follows y usuarios remotos para amigos
                 user?.let {
                     loadRemoteFollowsForUser(it.id)
                     preloadRemoteUsersForFriends()
@@ -69,17 +61,14 @@ class UserViewModel(
         }
     }
 
-    // === Limpiar error local (registro / login) ===
     fun clearError() {
         _error.value = null
     }
 
-    // === Limpiar error remoto (API) ===
     fun clearRemoteError() {
         _remoteError.value = null
     }
 
-    // === Registro de usuario (LOCAL: Room) ===
     suspend fun register(user: User): Boolean {
         if (user.firstName.isBlank() || user.lastName.isBlank() ||
             user.username.isBlank() || user.email.isBlank() ||
@@ -110,7 +99,6 @@ class UserViewModel(
         return true
     }
 
-    // === Login (LOCAL: Room + DataStore sesión) ===
     suspend fun login(username: String, password: String): Boolean {
         if (username.isBlank() || password.isBlank()) {
             _error.value = "Debes ingresar tu usuario y contraseña."
@@ -122,10 +110,8 @@ class UserViewModel(
             _currentUser.value = found
             _error.value = null
 
-            // Guardar sesión en DataStore
             session.saveUserSession(found.id)
 
-            // Cargar follows y usuarios remotos para amigos
             loadRemoteFollowsForUser(found.id)
             preloadRemoteUsersForFriends()
 
@@ -136,7 +122,6 @@ class UserViewModel(
         }
     }
 
-    // === Cerrar sesión ===
     fun logout() {
         _currentUser.value = null
         _error.value = null
@@ -151,7 +136,6 @@ class UserViewModel(
         }
     }
 
-    // === Eliminar usuario actual ===
     fun deleteUser(user: User) {
         viewModelScope.launch {
             repo.deleteUser(user)
@@ -161,7 +145,6 @@ class UserViewModel(
         }
     }
 
-    // === Eliminar todos los usuarios locales ===
     fun deleteAllUsers() {
         viewModelScope.launch {
             repo.deleteAllUsers()
@@ -169,14 +152,11 @@ class UserViewModel(
         }
     }
 
-    // === Escaneo remoto: API externa (MockAPI) ===
-    // Se usa SOLO cuando el usuario aprieta el botón Radar.
     fun scanRemoteUsers(maxDistance: Int) {
         viewModelScope.launch {
             _remoteLoading.value = true
             _remoteError.value = null
 
-            // Marcar que se hizo un escaneo y guardar la distancia
             _scanned.value = true
             _lastDistance.value = maxDistance
 
@@ -185,8 +165,6 @@ class UserViewModel(
             result
                 .onSuccess { users ->
                     _remoteUsers.value = users
-
-                    // Limpiar follows que apunten a usuarios que ya no están en la lista
                     val validIds = users.map { it.id }.toSet()
                     _remoteFollows.value = _remoteFollows.value.filterKeys { it in validIds }
                 }
@@ -198,14 +176,11 @@ class UserViewModel(
         }
     }
 
-    // === PRE-CARGA de usuarios remotos para amigos (sin marcar scanned) ===
     private fun preloadRemoteUsersForFriends() {
         viewModelScope.launch {
-            // Usamos 100 metros como radio "global" para HirMi en MockAPI
             val result = repo.scanRemoteUsers(100)
             result
                 .onSuccess { users ->
-                    // Solo llenamos la lista, no tocamos _scanned ni _lastDistance
                     _remoteUsers.value = users
                 }
                 .onFailure { e ->
@@ -214,7 +189,6 @@ class UserViewModel(
         }
     }
 
-    // === Cargar follows desde MockAPI para el usuario local ===
     private fun loadRemoteFollowsForUser(localUserId: String) {
         viewModelScope.launch {
             val result = repo.getFollowsForUser(localUserId)
@@ -228,7 +202,24 @@ class UserViewModel(
         }
     }
 
-    // === Toggle de follow REAL (MockAPI) para un usuario remoto ===
+    // ✅ Opción A: SOLO ROOM
+    fun updateNowPlaying(song: Song) {
+        val local = _currentUser.value ?: run {
+            _error.value = "Debes iniciar sesión."
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                val updatedLocal = local.copy(song = song)
+                repo.updateUserLocal(updatedLocal)
+                _currentUser.value = updatedLocal
+            } catch (e: Exception) {
+                _error.value = "No se pudo actualizar la canción: ${e.message}"
+            }
+        }
+    }
+
     fun toggleFollowFor(remoteUser: ApiUser) {
         val localUserId = _currentUser.value?.id ?: run {
             _remoteError.value = "Debes iniciar sesión para seguir usuarios."
@@ -239,7 +230,6 @@ class UserViewModel(
         val existingFollow = currentMap[remoteUser.id]
 
         if (existingFollow != null) {
-            // Ya lo sigo -> hacer UNFOLLOW
             viewModelScope.launch {
                 val result = repo.unfollow(existingFollow.id)
                 result
@@ -251,7 +241,6 @@ class UserViewModel(
                     }
             }
         } else {
-            // No lo sigo -> hacer FOLLOW
             viewModelScope.launch {
                 val result = repo.followUser(localUserId, remoteUser.id)
                 result
