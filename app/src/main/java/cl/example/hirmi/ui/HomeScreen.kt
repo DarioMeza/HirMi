@@ -69,92 +69,11 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
     val remoteFollows by viewModel.remoteFollows.collectAsState()
 
     var showDistanceModal by remember { mutableStateOf(false) }
-    var showProfileModal by remember { mutableStateOf(false) }
     var scanDistance by remember { mutableStateOf("100") }
     var isDistanceError by remember { mutableStateOf(false) }
 
     // Tab seleccionado en la barra inferior (Inicio por defecto)
     var selectedTab by remember { mutableStateOf(HomeTab.INICIO) }
-
-    // ============================= MODAL DE PERFIL =============================
-    if (showProfileModal && currentUser != null) {
-        var showConfirmDelete by remember { mutableStateOf(false) }
-
-        if (showConfirmDelete) {
-            AlertDialog(
-                onDismissRequest = { showConfirmDelete = false },
-                title = { Text("Confirmar eliminación") },
-                text = { Text("¿Estás seguro de que deseas eliminar tu cuenta? Esta acción no se puede deshacer.") },
-                confirmButton = {
-                    TextButton(onClick = {
-                        currentUser?.let {
-                            viewModel.deleteUser(it)
-                        }
-                        showConfirmDelete = false
-                        showProfileModal = false
-                        navController.navigate("welcome") {
-                            popUpTo("welcome") { inclusive = true }
-                        }
-                    }) {
-                        Text("Eliminar", color = Color.Red)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showConfirmDelete = false }) {
-                        Text("Cancelar")
-                    }
-                }
-            )
-        }
-
-        AlertDialog(
-            onDismissRequest = { showProfileModal = false },
-            title = { Text("Mi perfil", fontWeight = FontWeight.Bold) },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text("Nombre: ${currentUser!!.firstName} ${currentUser!!.lastName}")
-                    Text("Nombre de Usuario: @${currentUser!!.username}")
-                    Text("Correo: ${currentUser!!.email}")
-                    Text("Fecha de nacimiento: ${currentUser!!.birthdate}")
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Button(
-                        onClick = {
-                            viewModel.logout()
-                            showProfileModal = false
-                            navController.navigate("welcome") {
-                                popUpTo("home") { inclusive = true }
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Black,
-                            contentColor = Color.White
-                        )
-                    ) {
-                        Text("Cerrar sesión", color = Color.White)
-                    }
-
-                    Button(
-                        onClick = { showConfirmDelete = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
-                    ) {
-                        Text("Eliminar cuenta", color = Color.White)
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showProfileModal = false }) {
-                    Text("Cerrar")
-                }
-            }
-        )
-    }
 
     // ============================= MODAL DE DISTANCIA =============================
     if (showDistanceModal) {
@@ -222,7 +141,7 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                     IconButton(
                         onClick = {
                             if (currentUser != null) {
-                                showProfileModal = true
+                                navController.navigate("profile")
                             } else {
                                 navController.navigate("login")
                             }
