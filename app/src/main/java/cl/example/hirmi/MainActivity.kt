@@ -13,6 +13,7 @@ import cl.example.hirmi.repository.AppDatabase
 import cl.example.hirmi.repository.UserRepository
 import cl.example.hirmi.ui.HomeScreen
 import cl.example.hirmi.ui.LoginScreen
+import cl.example.hirmi.ui.ProfileScreen
 import cl.example.hirmi.ui.RegisterScreen
 import cl.example.hirmi.ui.SplashScreen
 import cl.example.hirmi.ui.WelcomeScreen
@@ -58,7 +59,9 @@ class MainActivity : ComponentActivity() {
 
                     composable("login") { LoginScreen(navController, viewModel) }
                     composable("register") { RegisterScreen(navController, viewModel) }
+                    composable("profile") { ProfileScreen(navController, viewModel) }
                     composable("home") { HomeScreen(navController, viewModel) }
+
                 }
             }
         }

@@ -92,8 +92,8 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                         }
                         showConfirmDelete = false
                         showProfileModal = false
-                        navController.navigate("register") {
-                            popUpTo("home") { inclusive = true }
+                        navController.navigate("welcome") {
+                            popUpTo("welcome") { inclusive = true }
                         }
                     }) {
                         Text("Eliminar", color = Color.Red)
