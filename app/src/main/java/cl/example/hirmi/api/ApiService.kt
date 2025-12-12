@@ -24,6 +24,9 @@ interface ApiService {
         @Query("followerId") followerId: String
     ): List<FollowResponse>
 
+    @GET("follows")
+    suspend fun getAllFollows(): List<FollowResponse>
+
     @POST("follows")
     suspend fun createFollow(
         @Body request: FollowRequest

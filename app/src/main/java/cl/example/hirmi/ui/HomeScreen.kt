@@ -17,7 +17,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
@@ -71,6 +70,10 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
     var showDistanceModal by remember { mutableStateOf(false) }
     var scanDistance by remember { mutableStateOf("100") }
     var isDistanceError by remember { mutableStateOf(false) }
+
+    // Nuevo: modal de perfil ajeno
+    var showProfileModal by remember { mutableStateOf(false) }
+    var selectedUser by remember { mutableStateOf<ApiUser?>(null) }
 
     // Tab seleccionado en la barra inferior (Inicio por defecto)
     var selectedTab by remember { mutableStateOf(HomeTab.INICIO) }
@@ -128,6 +131,37 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                 ) {
                     Text("Cancelar")
                 }
+            }
+        )
+    }
+
+    // Nuevo: Modal de perfil de usuario remoto
+    if (showProfileModal && selectedUser != null) {
+        // Asegurar que tenemos el catálogo completo de usuarios remotos
+        LaunchedEffect(selectedUser!!.id) {
+            viewModel.clearRemoteError()
+            // intenta precargar todos los usuarios (no filtrados por distancia)
+            // para poder mapear correctamente followers/following por ID
+            // (la recomposición se disparará cuando el StateFlow se actualice)
+            // No importa si ya está cargado: la repo se encarga.
+            // Nota: si la API falla, el modal seguirá mostrando contadores.
+            viewModel.scanRemoteUsers(100)
+        }
+
+        val (followersCount, followingCount) = viewModel.getCountersFor(selectedUser!!.id)
+        // NUEVO: obtener listas reales para el modal
+        val followersList = viewModel.getFollowersFor(selectedUser!!.id)
+        val followingList = viewModel.getFollowingFor(selectedUser!!.id)
+        UserProfileModal(
+            user = selectedUser!!,
+            isFollowing = remoteFollows.containsKey(selectedUser!!.id),
+            followersCount = followersCount,
+            followingCount = followingCount,
+            followers = followersList,
+            following = followingList,
+            onClose = { showProfileModal = false },
+            onToggleFollow = {
+                viewModel.toggleFollowFor(selectedUser!!)
             }
         )
     }
@@ -295,8 +329,9 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                                                 user = user,
                                                 isFollowing = isFollowing,
                                                 onFollowClick = { viewModel.toggleFollowFor(user) },
-                                                onMessageClick = {
-                                                    // TODO: Navegar a ChatScreen
+                                                onOpenProfile = {
+                                                    selectedUser = user
+                                                    showProfileModal = true
                                                 }
                                             )
                                         }
@@ -339,8 +374,9 @@ fun HomeScreen(navController: NavController, viewModel: UserViewModel) {
                                                 user = user,
                                                 isFollowing = true,
                                                 onFollowClick = { viewModel.toggleFollowFor(user) },
-                                                onMessageClick = {
-                                                    // TODO: Navegar a ChatScreen
+                                                onOpenProfile = {
+                                                    selectedUser = user
+                                                    showProfileModal = true
                                                 }
                                             )
                                         }
@@ -362,14 +398,11 @@ fun RemoteUserCard(
     user: ApiUser,
     isFollowing: Boolean,
     onFollowClick: () -> Unit,
-    onMessageClick: () -> Unit
+    onOpenProfile: () -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
-
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .clickable { expanded = !expanded },
+            .fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(
@@ -421,7 +454,9 @@ fun RemoteUserCard(
 
                     Spacer(modifier = Modifier.width(12.dp))
 
-                    Column {
+                    Column(
+                        modifier = Modifier.clickable { onOpenProfile() }
+                    ) {
                         Text(
                             text = "${user.firstName} ${user.lastName}",
                             style = MaterialTheme.typography.titleMedium,
@@ -478,58 +513,281 @@ fun RemoteUserCard(
                 )
             }
 
-            if (expanded) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Divider()
-                Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-                user.song?.let { song ->
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(
-                            text = "Álbum: ${song.album}",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Text(
-                            text = "Género: ${song.genre}",
-                            style = MaterialTheme.typography.bodySmall
-                        )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = onFollowClick,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isFollowing) Color.LightGray else Color.Black,
+                        contentColor = if (isFollowing) Color.Black else Color.White
+                    )
+                ) {
+                    Text(if (isFollowing) "Siguiendo" else "Seguir")
+                }
+                Button(
+                    onClick = onOpenProfile,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        contentColor = Color.Black
+                    )
+                ) {
+                    Text("Ver perfil")
+                }
+            }
+        }
+    }
+}
+
+// ============================= MODAL DE PERFIL AJENO =============================
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun UserProfileModal(
+    user: ApiUser,
+    isFollowing: Boolean,
+    followersCount: Int,
+    followingCount: Int,
+    followers: List<ApiUser>,
+    following: List<ApiUser>,
+    onClose: () -> Unit,
+    onToggleFollow: () -> Unit
+) {
+    // Estado para mostrar sub-listados
+    var showList by remember { mutableStateOf<UserListType?>(null) }
+
+    androidx.compose.ui.window.Dialog(onDismissRequest = onClose) {
+        androidx.compose.material3.Surface(
+            shape = RoundedCornerShape(20.dp),
+            tonalElevation = 6.dp,
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .fillMaxHeight(0.7f)
+                .widthIn(min = 380.dp, max = 560.dp)
+                .heightIn(min = 460.dp)
+                .padding(16.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Título
+                Text(
+                    text = "${user.firstName} ${user.lastName}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Avatar
+                if (!user.avatarUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = user.avatarUrl,
+                        contentDescription = "Avatar",
+                        modifier = Modifier
+                            .size(104.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    val initials = buildString {
+                        user.firstName.firstOrNull()?.let { append(it) }
+                        user.lastName.firstOrNull()?.let { append(it) }
+                    }.ifEmpty { "?" }
+                    Box(
+                        modifier = Modifier
+                            .size(104.dp)
+                            .clip(CircleShape)
+                            .background(Color.LightGray),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(initials, fontWeight = FontWeight.Bold)
                     }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
+                Text(user.bio ?: "Sin biografía", color = Color.Gray, textAlign = TextAlign.Center)
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Spacer(modifier = Modifier.height(14.dp))
+                // Canción
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.MusicNote, contentDescription = null)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(user.song?.title ?: "Sin canción favorita")
+                }
+                user.song?.artist?.let { Text("de $it", color = Color.Gray) }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                // Contadores
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.clickable { showList = UserListType.Followers }
+                    ) {
+                        Text("Seguidores", fontWeight = FontWeight.Bold)
+                        Text(followersCount.toString())
+                    }
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.clickable { showList = UserListType.Following }
+                    ) {
+                        Text("Seguidos", fontWeight = FontWeight.Bold)
+                        Text(followingCount.toString())
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                androidx.compose.material3.HorizontalDivider()
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Botones apilados: ocupan ancho completo para mantener armonía
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
                     Button(
-                        onClick = onFollowClick,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 48.dp),
+                        onClick = onToggleFollow,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Black,
-                            contentColor = Color.White
+                            containerColor = if (isFollowing) Color.LightGray else Color.Black,
+                            contentColor = if (isFollowing) Color.Black else Color.White
                         )
                     ) {
-                        Text(if (isFollowing) "Siguiendo" else "Seguir")
+                        Text(text = if (isFollowing) "Dejar de seguir" else "Seguir", maxLines = 1)
                     }
+
                     Button(
-                        onClick = onMessageClick,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 48.dp),
+                        onClick = { /* TODO: abrir chat */ },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            contentColor = Color.Black
+                        )
+                    ) {
+                        Text(text = "Mensaje", maxLines = 1)
+                    }
+
+                    Button(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 48.dp),
+                        onClick = onClose,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color.LightGray,
                             contentColor = Color.Black
                         )
                     ) {
-                        Text("Mensaje")
+                        Text(text = "Cerrar", maxLines = 1)
                     }
                 }
             }
+        }
+    }
 
-            // Expansión al tocar el texto
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = if (expanded) "Ver menos" else "Ver más",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.Gray,
-                modifier = Modifier
-                    .align(Alignment.End)
-                    .clickable { expanded = !expanded }
+    // SUB-MODAL: listado de seguidores/seguidos
+    when (showList) {
+        UserListType.Followers -> {
+            UserListModal(
+                title = "Seguidores",
+                users = followers,
+                onClose = { showList = null }
             )
+        }
+        UserListType.Following -> {
+            UserListModal(
+                title = "Seguidos",
+                users = following,
+                onClose = { showList = null }
+            )
+        }
+        null -> {}
+    }
+}
+
+// Tipo de listado
+private enum class UserListType { Followers, Following }
+
+// Modal para mostrar lista simple de usuarios
+@Composable
+private fun UserListModal(
+    title: String,
+    users: List<ApiUser>,
+    onClose: () -> Unit
+) {
+    androidx.compose.ui.window.Dialog(onDismissRequest = onClose) {
+        androidx.compose.material3.Surface(
+            shape = RoundedCornerShape(16.dp),
+            tonalElevation = 4.dp,
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .fillMaxHeight(0.6f)
+                .padding(12.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(12.dp))
+                if (users.isEmpty()) {
+                    Text("No hay elementos", color = Color.Gray)
+                } else {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(users) { u ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                if (!u.avatarUrl.isNullOrBlank()) {
+                                    AsyncImage(
+                                        model = u.avatarUrl,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                            .background(Color.LightGray),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        val initials = (u.firstName.firstOrNull()?.toString() ?: "") +
+                                            (u.lastName.firstOrNull()?.toString() ?: "")
+                                        Text(initials.ifEmpty { "?" })
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text("${u.firstName} ${u.lastName}", fontWeight = FontWeight.SemiBold)
+                                    Text(u.bio ?: "Sin biografía", color = Color.Gray, style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = onClose,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.LightGray, contentColor = Color.Black)
+                ) {
+                    Text("Cerrar")
+                }
+            }
         }
     }
 }

@@ -45,6 +45,13 @@ class UserViewModel(
     private val _remoteFollows = MutableStateFlow<Map<String, FollowResponse>>(emptyMap())
     val remoteFollows = _remoteFollows.asStateFlow()
 
+    private val _globalFollows = MutableStateFlow<List<FollowResponse>>(emptyList())
+    val globalFollows = _globalFollows.asStateFlow()
+
+    private val _allRemoteUsers = MutableStateFlow<List<ApiUser>>(emptyList())
+    private val allRemoteById: Map<String, ApiUser>
+        get() = _allRemoteUsers.value.associateBy { it.id }
+
     init {
         viewModelScope.launch {
             val savedUserId = session.loggedUserId.first()
@@ -57,8 +64,56 @@ class UserViewModel(
                     preloadRemoteUsersForFriends()
                 }
             }
+            // preload all follows to compute counters
+            preloadAllFollows()
+            // NUEVO: precargar todos los usuarios remotos para resolución por ID
+            preloadAllRemoteUsers()
             _isSessionChecked.value = true
         }
+    }
+
+    private fun preloadAllFollows() {
+        viewModelScope.launch {
+            val result = repo.getAllFollows()
+            result.onSuccess { _globalFollows.value = it }
+                .onFailure { _remoteError.value = "Error al cargar seguidores: ${it.message}" }
+        }
+    }
+
+    private fun preloadAllRemoteUsers() {
+        viewModelScope.launch {
+            val result = repo.getAllRemoteUsers()
+            result
+                .onSuccess { _allRemoteUsers.value = it }
+                .onFailure { _remoteError.value = "Error al cargar usuarios globales: ${it.message}" }
+        }
+    }
+
+    fun getCountersFor(userId: String): Pair<Int, Int> {
+        // returns followersCount to this user, and followingCount by this user
+        val followers = _globalFollows.value.count { it.followedId == userId }
+        val following = _globalFollows.value.count { it.followerId == userId }
+        return followers to following
+    }
+
+    // NUEVO: listas reales de seguidores y seguidos para cualquier usuario
+    fun getFollowersFor(userId: String): List<ApiUser> {
+        val followerIds = _globalFollows.value
+            .filter { it.followedId == userId }
+            .map { it.followerId }
+            .toSet()
+        // usar el mapa global primero; si no, caer al listado visible
+        val byId = allRemoteById.ifEmpty { _remoteUsers.value.associateBy { it.id } }
+        return followerIds.mapNotNull { byId[it] }
+    }
+
+    fun getFollowingFor(userId: String): List<ApiUser> {
+        val followingIds = _globalFollows.value
+            .filter { it.followerId == userId }
+            .map { it.followedId }
+            .toSet()
+        val byId = allRemoteById.ifEmpty { _remoteUsers.value.associateBy { it.id } }
+        return followingIds.mapNotNull { byId[it] }
     }
 
     fun clearError() {
@@ -235,6 +290,9 @@ class UserViewModel(
                 result
                     .onSuccess {
                         _remoteFollows.value = _remoteFollows.value - remoteUser.id
+                        _globalFollows.value = _globalFollows.value.filterNot { it.id == existingFollow.id }
+                        // refrescar globales
+                        preloadAllFollows()
                     }
                     .onFailure { e ->
                         _remoteError.value = "Error al dejar de seguir: ${e.message}"
@@ -246,6 +304,10 @@ class UserViewModel(
                 result
                     .onSuccess { follow ->
                         _remoteFollows.value = _remoteFollows.value + (remoteUser.id to follow)
+                        _globalFollows.value = _globalFollows.value + follow
+                        // refrescar globales y usuarios para asegurar que el seguido aparezca en listados
+                        preloadAllFollows()
+                        preloadAllRemoteUsers()
                     }
                     .onFailure { e ->
                         _remoteError.value = "Error al seguir usuario: ${e.message}"

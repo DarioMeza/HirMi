@@ -50,6 +50,17 @@ class UserRepository(private val dao: UserDao) {
         }
     }
 
+    // NUEVO: obtener todos los usuarios (sin filtrar por distancia)
+    suspend fun getAllRemoteUsers(): Result<List<ApiUser>> {
+        return try {
+            val allUsers = RetrofitClient.apiService.getUsers()
+            Result.success(allUsers)
+        } catch (e: Exception) {
+            println("Error al obtener todos los usuarios remotos: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
     // === REMOTO: FOLLOWS en MockAPI ===
 
     suspend fun getFollowsForUser(localUserId: String): Result<List<FollowResponse>> {
@@ -82,6 +93,16 @@ class UserRepository(private val dao: UserDao) {
             Result.success(Unit)
         } catch (e: Exception) {
             println("Error al eliminar follow: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getAllFollows(): Result<List<FollowResponse>> {
+        return try {
+            val follows = RetrofitClient.apiService.getAllFollows()
+            Result.success(follows)
+        } catch (e: Exception) {
+            println("Error al obtener todos los follows: ${e.message}")
             Result.failure(e)
         }
     }
