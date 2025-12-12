@@ -7,6 +7,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,7 +19,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -82,6 +84,46 @@ fun ProfileScreen(
                 navigationIcon = {
                     TextButton(onClick = { navController.popBackStack() }) {
                         Text("Volver")
+                    }
+                },
+                actions = {
+                    var expanded by remember { mutableStateOf(false) }
+
+                    IconButton(onClick = { expanded = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "Configuración"
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    "Cerrar sesión",
+                                    color = Color.Red,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            },
+                            onClick = {
+                                expanded = false
+                                viewModel.logout()
+                                navController.navigate("welcome") {
+                                    popUpTo("home") { inclusive = true }
+                                }
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Logout,
+                                    contentDescription = "Cerrar sesión",
+                                    tint = Color.Red
+                                )
+                            }
+                        )
                     }
                 }
             )
@@ -212,37 +254,7 @@ fun ProfileScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    LinearProgressIndicator(
-                        progress = { 0.35f },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    val total = song?.duration ?: 0
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("0:00", style = MaterialTheme.typography.bodySmall)
-                        Text(
-                            if (total > 0) "-${formatSeconds(total)}" else "--:--",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Button(
-                        onClick = { showSongPicker = true },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Black,
-                            contentColor = Color.White
-                        )
-                    ) {
-                        Text("Cambiar canción")
-                    }
+                    LinearProgressIndicator(progress = { 0.3f })
                 }
             }
         }
@@ -250,75 +262,17 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun SongRow(song: Song, onClick: () -> Unit) {
-    val context = LocalContext.current
-    val cover = song.coverURL
-
-    val model: Any? = when {
-        cover.isNullOrBlank() -> null
-        cover.startsWith("res:") -> {
-            val resName = cover.removePrefix("res:")
-            val resId = context.resources.getIdentifier(
-                resName,
-                "drawable",
-                context.packageName
-            )
-            if (resId != 0) resId else null
-        }
-        else -> cover
-    }
-
+fun SongRow(song: Song, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .clickable { onClick() }
-            .padding(10.dp),
+            .clickable(onClick = onClick)
+            .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(Color.DarkGray),
-            contentAlignment = Alignment.Center
-        ) {
-            if (model != null) {
-                AsyncImage(
-                    model = model,
-                    contentDescription = "Cover",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                Text("♪", color = Color.White)
-            }
-        }
-
-        Spacer(Modifier.width(10.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                song.title,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                song.artist,
-                color = Color.Gray,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-
-        Text(formatSeconds(song.duration), color = Color.Gray)
+        Text(song.title)
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(song.artist, color = Color.Gray)
     }
 }
 
-private fun formatSeconds(totalSeconds: Int): String {
-    val m = totalSeconds / 60
-    val s = totalSeconds % 60
-    return "%d:%02d".format(m, s)
-}

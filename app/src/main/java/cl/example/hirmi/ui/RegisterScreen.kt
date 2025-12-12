@@ -50,21 +50,20 @@ fun RegisterScreen(navController: NavController, viewModel: UserViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(24.dp),
+            .statusBarsPadding()
+            .padding(32.dp)
+            .verticalScroll(scrollState),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
         Image(
             painter = painterResource(id = R.drawable.icono),
             contentDescription = "Icono de bienvenida",
-            modifier = Modifier
-                .size(180.dp)
-                .align(Alignment.CenterHorizontally),
+            modifier = Modifier.size(200.dp),
             contentScale = ContentScale.Fit
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         Text(
             text = "Registro de Usuario",
@@ -81,7 +80,7 @@ fun RegisterScreen(navController: NavController, viewModel: UserViewModel) {
             label = "Nombre",
             modifier = Modifier.fillMaxWidth(0.9f)
         )
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         HirMiInputField(
             value = lastName,
@@ -89,7 +88,7 @@ fun RegisterScreen(navController: NavController, viewModel: UserViewModel) {
             label = "Apellido",
             modifier = Modifier.fillMaxWidth(0.9f)
         )
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         HirMiInputField(
             value = username,
@@ -97,7 +96,7 @@ fun RegisterScreen(navController: NavController, viewModel: UserViewModel) {
             label = "Usuario",
             modifier = Modifier.fillMaxWidth(0.9f)
         )
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         HirMiInputField(
             value = email,
@@ -106,7 +105,7 @@ fun RegisterScreen(navController: NavController, viewModel: UserViewModel) {
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             modifier = Modifier.fillMaxWidth(0.9f)
         )
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         HirMiInputField(
             value = password,
@@ -116,7 +115,7 @@ fun RegisterScreen(navController: NavController, viewModel: UserViewModel) {
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth(0.9f)
         )
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         HirMiInputField(
             value = birthdate,
@@ -146,7 +145,7 @@ fun RegisterScreen(navController: NavController, viewModel: UserViewModel) {
                     if (success) navController.navigate("login")
                 }
             },
-            modifier = Modifier.fillMaxWidth(0.6f)
+            modifier = Modifier.fillMaxWidth(0.7f)
         )
 
         if (!error.isNullOrEmpty()) {
