@@ -1,3 +1,4 @@
+# Archivos de configuración de usuario y sistema
 *.iml
 .gradle
 /local.properties
@@ -8,8 +9,20 @@
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
 .DS_Store
+
+# Builds y artefactos generados (Basura que no se sube)
 /build
 /captures
 .externalNativeBuild
 .cxx
-local.properties
+/app/build
+
+# Ejecutables finales (Para que no subas el APK por error)
+/app/release/
+*.apk
+*.aab
+
+# SEGURIDAD: Llaves y keystores (¡Muy bien configurado!)
+app/keystore/
+*.jks
+*.keystore
